@@ -1,3 +1,5 @@
+#version 120
+
 varying vec4 p;
 
 uniform float param = 128.;
@@ -20,6 +22,8 @@ int mandel(vec2 c, int n)
 
 void main()
 {
-    p.x = p.x * 1.5 - 0.5;
-    gl_FragColor = 1. - mandel(p.xy, int(param)) / param;
+    vec4 pp = p;
+    pp.x = p.x * 1.5 - 0.5;
+    float color = 1. - mandel(pp.xy, int(param)) / param;
+    gl_FragColor = vec4(color, color, color, 1.);
 }
