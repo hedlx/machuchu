@@ -36,9 +36,9 @@ class GLWidget(QtOpenGL.QGLWidget):
     def paintGL(self):
         GL.glBegin(GL.GL_TRIANGLE_STRIP)
         GL.glVertex3f(-1., -1., 0.)
-        GL.glVertex3f(1., -1., 0.);
-        GL.glVertex3f(-1., 1., 0.);
-        GL.glVertex3f(1., 1., 0.);
+        GL.glVertex3f(1., -1., 0.)
+        GL.glVertex3f(-1., 1., 0.)
+        GL.glVertex3f(1., 1., 0.)
         GL.glEnd()
 
     def setFragmentShader(self, shader):
