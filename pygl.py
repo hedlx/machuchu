@@ -47,13 +47,12 @@ class GLWidget(QtOpenGL.QGLWidget):
         GL.glUseProgram(self.program)
 
     def setUniform(self, name, value):
-        try:
-            GL.glUniform1f(GL.glGetUniformLocation(self.program, name), float(value))
-        except ValueError:
-            pass
+        if isinstance(value, float):
+            GL.glUniform1f(GL.glGetUniformLocation(self.program, name), value)
 
     def tick(self):
         self.updateGL()
+
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -63,26 +62,40 @@ class MainWindow(QtGui.QMainWindow):
         self.glWidget = GLWidget(self)
         self.setCentralWidget(self.glWidget)
         self.dock = QtGui.QDockWidget()
-        self.makeDock(None)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
 
-    def makeDock(self, data):
         widget = QtGui.QWidget()
-        layout = QtGui.QVBoxLayout()
+        self.docklayout = QtGui.QVBoxLayout()
         loadButton = QtGui.QPushButton("Load")
         loadButton.clicked.connect(self.load)
-        layout.addWidget(loadButton)
-        if(data):
-            ### TODO: hadle uniform type
-            r = re.compile(r'uniform\s+\w+\s+(\w+)(?:\s+=\s+([^;]+))?')
-            for match in r.findall(data):
-                layout.addWidget(QtGui.QLabel(match[0]))
-                edit = QtGui.QLineEdit(match[1])
-                edit.textChanged.connect(lambda text: self.glWidget.setUniform(match[0], text))
-                layout.addWidget(edit)
-        layout.addStretch(1)
-        widget.setLayout(layout)
+        self.docklayout.addWidget(loadButton)
+        widget.setLayout(self.docklayout)
         self.dock.setWidget(widget)
+        self.docklayout.addStretch(0)
+
+        self.uniforms = {}
+
+    def updateUniforms(self, data):
+        r = re.compile(r'uniform\s+(\w+)\s+(\w+)(?:\s+=\s+([^;]+))?')
+        for type_, name, value in r.findall(data):
+            assert(type_ == 'float') ### TODO: hadle uniform type
+            if name in self.uniforms:
+                self.glWidget.setUniform(name, self.uniforms[name])
+            else:
+                self.uniforms[name] = float(value)
+
+                self.docklayout.addWidget(QtGui.QLabel(name))
+                edit = QtGui.QLineEdit(value)
+                def l(text):
+                    try:
+                        v = float(text)
+                        self.uniforms[name] = v
+                        self.glWidget.setUniform(name, v)
+                    except ValueError:
+                        pass
+                edit.textChanged.connect(l)
+                self.docklayout.addWidget(edit)
+        self.docklayout.addStretch(1)
 
     def load(self):
         filename = QtGui.QFileDialog.getOpenFileName(self)
@@ -93,7 +106,7 @@ class MainWindow(QtGui.QMainWindow):
             with open(filename) as f:
                 data = f.read()
             self.glWidget.setFragmentShader(data)
-            self.makeDock(data)
+            self.updateUniforms(data)
         except:
             err = str(sys.exc_info()[1])
             mb = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Error loading shader",
