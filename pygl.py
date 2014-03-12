@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+# vim: sw=4:ts=4:sts=4:expandtab
+
 import sys, re
 from PyQt4 import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
