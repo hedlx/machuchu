@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 import sys, re
 from PyQt4 import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
