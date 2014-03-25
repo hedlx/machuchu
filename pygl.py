@@ -122,6 +122,10 @@ class MainWindow(QtGui.QMainWindow):
             self.glWidget.setUniform('time', float(self.time.elapsed()))
         self.glWidget.tick()
 
+    def keyPressEvent(self, e):
+        if e.key() == QtCore.Qt.Key_Escape:
+            self.close()
+
 app = QtGui.QApplication(sys.argv)
 win = MainWindow()
 win.show()
