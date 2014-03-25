@@ -117,4 +117,6 @@ class MainWindow(QtGui.QMainWindow):
 app = QtGui.QApplication(sys.argv)
 win = MainWindow()
 win.show()
+if len(QtGui.QApplication.arguments()) > 1:
+    win.loadFile(QtGui.QApplication.arguments()[1])
 sys.exit(app.exec_())
