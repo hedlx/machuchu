@@ -13,18 +13,27 @@ import OpenGL.GL.shaders
 class GLWidget(QtOpenGL.QGLWidget):
     vertexShaderData = "varying vec4 p;\n"\
                        "\n"\
-                       "uniform float __aspect = 1.;\n"\
+                       "uniform float __aspect;\n"\
+                       "uniform float __x = 0.;\n"\
+                       "uniform float __y = 0.;\n"\
+                       "uniform float __z = 1.;\n"\
                        "\n"\
                        "void main()\n"\
                        "{\n"\
                        "    gl_Position = p = gl_Vertex;\n"\
                        "    p.x *= __aspect;\n"\
+                       "    p /= __z;\n"\
+                       "    p.x += __x;\n"\
+                       "    p.y += __y;\n"\
                        "}\n"
 
     def __init__(self, parent=None):
         self.parent = parent
         QtOpenGL.QGLWidget.__init__(self, parent)
         self.program = None
+        self.x = 0.
+        self.y = 0.
+        self.z = 1.
 
     def initializeGL(self):
         self.vertexShader = GL.shaders.compileShader(self.vertexShaderData, GL.GL_VERTEX_SHADER)
@@ -51,6 +60,16 @@ class GLWidget(QtOpenGL.QGLWidget):
     def setUniform(self, name, value):
         if isinstance(value, float):
             GL.glUniform1f(GL.glGetUniformLocation(self.program, name), value)
+
+    def move(self, x, y):
+        self.x += float(x) / 10 / self.z
+        self.y += float(y) / 10 / self.z
+        GL.glUniform1f(GL.glGetUniformLocation(self.program, "__x"), self.x)
+        GL.glUniform1f(GL.glGetUniformLocation(self.program, "__y"), self.y)
+
+    def zoom(self, zoom):
+        self.z *= 1 + float(zoom) / 10
+        GL.glUniform1f(GL.glGetUniformLocation(self.program, "__z"), self.z)
 
     def tick(self):
         self.updateGL()
@@ -131,6 +150,18 @@ class MainWindow(QtGui.QMainWindow):
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
+        if e.key() == QtCore.Qt.Key_W:
+            self.glWidget.move(0, +1)
+        if e.key() == QtCore.Qt.Key_S:
+            self.glWidget.move(0, -1)
+        if e.key() == QtCore.Qt.Key_A:
+            self.glWidget.move(-1, 0)
+        if e.key() == QtCore.Qt.Key_D:
+            self.glWidget.move(+1, 0)
+        if e.key() == QtCore.Qt.Key_Period:
+            self.glWidget.zoom(1)
+        if e.key() == QtCore.Qt.Key_Comma:
+            self.glWidget.zoom(-1)
 
 app = QtGui.QApplication(sys.argv)
 win = MainWindow()
