@@ -24,6 +24,7 @@ void main()
 {
     vec4 pp = p;
     pp.x = p.x * 1.5 - 0.5;
+    pp.y *= 1.5;
     float color = 1. - mandel(pp.xy, int(param)) / param;
     gl_FragColor = vec4(color, color, color, 1.);
 }

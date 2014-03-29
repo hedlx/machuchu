@@ -11,23 +11,28 @@ import OpenGL.GL.shaders
 ###              advanced GUI generation (from comments)
 
 class GLWidget(QtOpenGL.QGLWidget):
-    ### TODO: aspect handling
     vertexShaderData = "varying vec4 p;\n"\
+                       "\n"\
+                       "uniform float __aspect = 1.;\n"\
                        "\n"\
                        "void main()\n"\
                        "{\n"\
                        "    gl_Position = p = gl_Vertex;\n"\
+                       "    p.x *= __aspect;\n"\
                        "}\n"
 
     def __init__(self, parent=None):
         self.parent = parent
         QtOpenGL.QGLWidget.__init__(self, parent)
+        self.program = None
 
     def initializeGL(self):
         self.vertexShader = GL.shaders.compileShader(self.vertexShaderData, GL.GL_VERTEX_SHADER)
 
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
+        if(self.program):
+            GL.glUniform1f(GL.glGetUniformLocation(self.program, "__aspect"), float(width) / height)
 
     def paintGL(self):
         GL.glBegin(GL.GL_TRIANGLE_STRIP)
@@ -41,6 +46,7 @@ class GLWidget(QtOpenGL.QGLWidget):
         fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
         self.program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
         GL.glUseProgram(self.program)
+        GL.glUniform1f(GL.glGetUniformLocation(self.program, "__aspect"), float(self.width()) / self.height())
 
     def setUniform(self, name, value):
         if isinstance(value, float):
