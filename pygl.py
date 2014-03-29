@@ -11,20 +11,22 @@ import OpenGL.GL.shaders
 ###              advanced GUI generation (from comments)
 
 class GLWidget(QtOpenGL.QGLWidget):
-    vertexShaderData = "varying vec4 p;\n"\
+    vertexShaderData = "#version 120\n"\
                        "\n"\
-                       "uniform float __aspect;\n"\
-                       "uniform float __x = 0.;\n"\
-                       "uniform float __y = 0.;\n"\
-                       "uniform float __z = 1.;\n"\
+                       "varying vec4 p;\n"\
+                       "\n"\
+                       "uniform float _aspect;\n"\
+                       "uniform float _x = 0.;\n"\
+                       "uniform float _y = 0.;\n"\
+                       "uniform float _z = 1.;\n"\
                        "\n"\
                        "void main()\n"\
                        "{\n"\
                        "    gl_Position = p = gl_Vertex;\n"\
-                       "    p.x *= __aspect;\n"\
-                       "    p /= __z;\n"\
-                       "    p.x += __x;\n"\
-                       "    p.y += __y;\n"\
+                       "    p.x *= _aspect;\n"\
+                       "    p /= _z;\n"\
+                       "    p.x += _x;\n"\
+                       "    p.y += _y;\n"\
                        "}\n"
 
     def __init__(self, parent=None):
@@ -41,7 +43,7 @@ class GLWidget(QtOpenGL.QGLWidget):
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
         if(self.program):
-            GL.glUniform1f(GL.glGetUniformLocation(self.program, "__aspect"), float(width) / height)
+            GL.glUniform1f(GL.glGetUniformLocation(self.program, "_aspect"), float(width) / height)
 
     def paintGL(self):
         GL.glBegin(GL.GL_TRIANGLE_STRIP)
@@ -55,7 +57,7 @@ class GLWidget(QtOpenGL.QGLWidget):
         fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
         self.program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
         GL.glUseProgram(self.program)
-        GL.glUniform1f(GL.glGetUniformLocation(self.program, "__aspect"), float(self.width()) / self.height())
+        GL.glUniform1f(GL.glGetUniformLocation(self.program, "_aspect"), float(self.width()) / self.height())
 
     def setUniform(self, name, value):
         if isinstance(value, float):
@@ -64,12 +66,12 @@ class GLWidget(QtOpenGL.QGLWidget):
     def move(self, x, y):
         self.x += float(x) / 10 / self.z
         self.y += float(y) / 10 / self.z
-        GL.glUniform1f(GL.glGetUniformLocation(self.program, "__x"), self.x)
-        GL.glUniform1f(GL.glGetUniformLocation(self.program, "__y"), self.y)
+        GL.glUniform1f(GL.glGetUniformLocation(self.program, "_x"), self.x)
+        GL.glUniform1f(GL.glGetUniformLocation(self.program, "_y"), self.y)
 
     def zoom(self, zoom):
         self.z *= 1 + float(zoom) / 10
-        GL.glUniform1f(GL.glGetUniformLocation(self.program, "__z"), self.z)
+        GL.glUniform1f(GL.glGetUniformLocation(self.program, "_z"), self.z)
 
     def tick(self):
         self.updateGL()
