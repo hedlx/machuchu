@@ -117,10 +117,11 @@ class MainWindow(QtGui.QMainWindow):
                     self.docklayout.addWidget(QtGui.QLabel(name))
                     edit = QtGui.QLineEdit(value)
                     def l(text):
+                        n = name
                         try:
                             v = float(text)
-                            self.uniforms[name] = v
-                            self.glWidget.setUniform(name, v)
+                            self.uniforms[n] = v
+                            self.glWidget.setUniform(n, v)
                         except ValueError:
                             pass
                     edit.textChanged.connect(l)
