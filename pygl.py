@@ -98,12 +98,14 @@ class MainWindow(QtGui.QMainWindow):
 
         self.uniforms = {}
 
-        timer = QtCore.QTimer(self)
-        timer.setInterval(20)
-        timer.timeout.connect(self.tick)
-        timer.start()
+        self.timer = QtCore.QTimer(self)
+        self.timer.setInterval(20)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start()
         self.time = QtCore.QTime()
+        self.old = 0
         self.time.start()
+        self.timeron = True # FIXME
 
     def updateUniforms(self, data):
         r = re.compile(r'uniform\s+(\w+)\s+(\w+)(?:\s+=\s+([^;]+))?')
@@ -146,8 +148,10 @@ class MainWindow(QtGui.QMainWindow):
             mb.exec_()
 
     def tick(self):
-        if 'time' in self.uniforms:
-            self.glWidget.setUniform('time', float(self.time.elapsed()))
+        if self.timeron and 'time' in self.uniforms:
+            self.old = self.old + float(self.time.elapsed())
+            self.glWidget.setUniform('time', self.old)
+        self.time.start()
         self.glWidget.tick()
 
     def keyPressEvent(self, e):
@@ -165,6 +169,8 @@ class MainWindow(QtGui.QMainWindow):
             self.glWidget.zoom(1)
         if e.key() == QtCore.Qt.Key_Comma:
             self.glWidget.zoom(-1)
+        if e.key() == QtCore.Qt.Key_P:
+            self.timeron = not self.timeron
 
 app = QtGui.QApplication(sys.argv)
 win = MainWindow()
