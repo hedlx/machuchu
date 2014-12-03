@@ -131,8 +131,9 @@ class MainWindow(QtGui.QMainWindow):
         self.docklayout.addStretch(1)
 
     def load(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self)
-        self.loadFile(filename)
+        filename = QtGui.QFileDialog.getOpenFileName(self, filter="Fragment shader (*.f)")
+        if not filename.isNull():
+            self.loadFile(filename)
 
     def loadFile(self, filename):
         try:
