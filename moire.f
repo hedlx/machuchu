@@ -15,14 +15,16 @@ vec4 hsv2rgb(float h, float s, float v)
     h *= 6;
     float c = v * s;
     float x = c * mod(h, 2);
+    float m = v - c;
+    vec4  r = vec4(m, m, m, 0);
     switch(int(h))
     {
-        case 0: return vec4(c, x, 0, 1);
-        case 1: return vec4(x, c, 0, 1);
-        case 2: return vec4(0, c, x, 1);
-        case 3: return vec4(0, x, c, 1);
-        case 4: return vec4(x, 0, c, 1);
-        default: return vec4(c, 0, x, 1);
+        case 0:  return r + vec4(c, x, 0, 1);
+        case 1:  return r + vec4(x, c, 0, 1);
+        case 2:  return r + vec4(0, c, x, 1);
+        case 3:  return r + vec4(0, x, c, 1);
+        case 4:  return r + vec4(x, 0, c, 1);
+        default: return r + vec4(c, 0, x, 1);
     }
 }
 
