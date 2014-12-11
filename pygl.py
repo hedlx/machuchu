@@ -1,9 +1,9 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
-# vim: sw=4:ts=4:sts=4:expandtab
+# vim: sw=4 ts=4 sts=4 et:
 
-import sys, re, traceback, signal
-from PyQt4 import QtCore, QtGui, QtOpenGL
+import sys, re, traceback
+from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
 import OpenGL.GL.shaders
 
@@ -11,27 +11,28 @@ import OpenGL.GL.shaders
 ###              advanced GUI generation (from comments)
 
 class GLWidget(QtOpenGL.QGLWidget):
-    vertexShaderData = "#version 120\n"\
-                       "\n"\
-                       "varying vec4 p;\n"\
-                       "\n"\
-                       "uniform float _aspect;\n"\
-                       "uniform float _x = 0.;\n"\
-                       "uniform float _y = 0.;\n"\
-                       "uniform float _z = 1.;\n"\
-                       "\n"\
-                       "void main()\n"\
-                       "{\n"\
-                       "    gl_Position = p = gl_Vertex;\n"\
-                       "    p.x *= _aspect;\n"\
-                       "    p /= _z;\n"\
-                       "    p.x += _x;\n"\
-                       "    p.y += _y;\n"\
-                       "}\n"
+    vertexShaderData = """
+        #version 120
+
+        varying vec4 p;
+
+        uniform float _aspect;
+        uniform float _x = 0.;
+        uniform float _y = 0.;
+        uniform float _z = 1.;
+
+        void main() {
+            gl_Position = p = gl_Vertex;
+            p.x *= _aspect;
+            p /= _z;
+            p.x += _x;
+            p.y += _y;
+        }
+    """
 
     def __init__(self, parent=None):
         self.parent = parent
-        QtOpenGL.QGLWidget.__init__(self, parent)
+        super(GLWidget, self).__init__(parent)
         self.program = None
         self.targetSpeed = [0., 0.]
         self.speed = [0., 0.]
@@ -88,7 +89,7 @@ class GLWidget(QtOpenGL.QGLWidget):
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
-        QtGui.QMainWindow.__init__(self)
+        super(MainWindow, self).__init__()
         self.resize(800, 600)
         self.setWindowTitle('PyGL')
         self.glWidget = GLWidget(self)
