@@ -2,7 +2,7 @@
 
 # vim: sw=4 ts=4 sts=4 et:
 
-import sys, re, traceback
+import sys, re, traceback, signal
 from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
 import OpenGL.GL.shaders
@@ -95,7 +95,7 @@ class MainWindow(QtGui.QMainWindow):
         self.glWidget = GLWidget(self)
         self.setCentralWidget(self.glWidget)
         self.dock = QtGui.QDockWidget()
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
+#        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
 
         widget = QtGui.QWidget()
         self.docklayout = QtGui.QVBoxLayout()
