@@ -120,15 +120,14 @@ class MainWindow(QtGui.QMainWindow):
         r = re.compile(r'uniform\s+(\w+)\s+(\w+)(?:\s+=\s+([^;]+))?')
         for type_, name, value in r.findall(data):
             assert(type_ == 'float') ### TODO: hadle uniform type
-            if name in self.uniforms:
+            if name in self.uniforms and name != 'time':
                 self.glWidget.setUniform(name, float(self.uniforms[name]))
             else:
                 self.uniforms[name] = value
                 if name != 'time':
                     self.docklayout.addWidget(QtGui.QLabel(name))
                     edit = QtGui.QLineEdit(value)
-                    def l(text):
-                        n = name
+                    def l(text, n=name):
                         try:
                             v = float(text)
                             self.uniforms[n] = v
