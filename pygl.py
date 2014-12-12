@@ -2,7 +2,7 @@
 
 # vim: sw=4:ts=4:sts=4:expandtab
 
-import sys, re, traceback
+import sys, re, traceback, signal
 from PyQt4 import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
 import OpenGL.GL.shaders
@@ -193,6 +193,7 @@ class MainWindow(QtGui.QMainWindow):
             if e.key() == QtCore.Qt.Key_D:
                 self.glWidget.addSpeed(-1, 0)
 
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 app = QtGui.QApplication(sys.argv)
 win = MainWindow()
 win.show()
