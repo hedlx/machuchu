@@ -33,6 +33,8 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.parent = parent
         QtOpenGL.QGLWidget.__init__(self, parent)
         self.program = None
+        self.targetSpeed = [0., 0.]
+        self.speed = [0., 0.]
         self.x = 0.
         self.y = 0.
         self.z = 1.
@@ -69,11 +71,18 @@ class GLWidget(QtOpenGL.QGLWidget):
         GL.glUniform1f(GL.glGetUniformLocation(self.program, "_x"), self.x)
         GL.glUniform1f(GL.glGetUniformLocation(self.program, "_y"), self.y)
 
+    def addSpeed(self, x, y):
+        self.targetSpeed[0] += float(x)
+        self.targetSpeed[1] += float(y)
+
     def zoom(self, zoom):
-        self.z *= 1 + float(zoom) / 10
+        self.z *= 1.1 ** float(zoom)
         GL.glUniform1f(GL.glGetUniformLocation(self.program, "_z"), self.z)
 
     def tick(self):
+        self.speed[0] = (self.speed[0]*15 + self.targetSpeed[0])/16
+        self.speed[1] = (self.speed[1]*15 + self.targetSpeed[1])/16
+        self.move(self.speed[0]/5, self.speed[1]/5)
         self.updateGL()
 
 
@@ -156,22 +165,34 @@ class MainWindow(QtGui.QMainWindow):
         self.glWidget.tick()
 
     def keyPressEvent(self, e):
+        if not e.isAutoRepeat():
+            if e.key() == QtCore.Qt.Key_W:
+                self.glWidget.addSpeed(0, +1)
+            if e.key() == QtCore.Qt.Key_S:
+                self.glWidget.addSpeed(0, -1)
+            if e.key() == QtCore.Qt.Key_A:
+                self.glWidget.addSpeed(-1, 0)
+            if e.key() == QtCore.Qt.Key_D:
+                self.glWidget.addSpeed(+1, 0)
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
-        if e.key() == QtCore.Qt.Key_W:
-            self.glWidget.move(0, +1)
-        if e.key() == QtCore.Qt.Key_S:
-            self.glWidget.move(0, -1)
-        if e.key() == QtCore.Qt.Key_A:
-            self.glWidget.move(-1, 0)
-        if e.key() == QtCore.Qt.Key_D:
-            self.glWidget.move(+1, 0)
         if e.key() == QtCore.Qt.Key_Period:
             self.glWidget.zoom(1)
         if e.key() == QtCore.Qt.Key_Comma:
             self.glWidget.zoom(-1)
         if e.key() == QtCore.Qt.Key_P:
             self.timeron = not self.timeron
+
+    def keyReleaseEvent(self, e):
+        if not e.isAutoRepeat():
+            if e.key() == QtCore.Qt.Key_W:
+                self.glWidget.addSpeed(0, -1)
+            if e.key() == QtCore.Qt.Key_S:
+                self.glWidget.addSpeed(0, +1)
+            if e.key() == QtCore.Qt.Key_A:
+                self.glWidget.addSpeed(+1, 0)
+            if e.key() == QtCore.Qt.Key_D:
+                self.glWidget.addSpeed(-1, 0)
 
 app = QtGui.QApplication(sys.argv)
 win = MainWindow()
