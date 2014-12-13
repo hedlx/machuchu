@@ -151,10 +151,15 @@ class MainWindow(QtGui.QMainWindow):
             self.glWidget.setFragmentShader(data)
             self.updateUniforms(data)
         except:
-            err = str(sys.exc_info()[1])
+            e = sys.exc_info()[1]
+            text = str(e)
+
+            if type(e) == RuntimeError and len(e.args) == 3 and \
+                e.args[2] == GL.GL_FRAGMENT_SHADER:
+                text = e.args[0]
+
             mb = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Error loading shader",
-                                   err[:50] + "...", QtGui.QMessageBox.Ok)
-            mb.setDetailedText(err)
+                                   text, QtGui.QMessageBox.Ok)
             mb.exec_()
 
     def tick(self):
