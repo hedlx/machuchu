@@ -58,20 +58,27 @@ class GLWidget(QtOpenGL.QGLWidget):
         GL.glEnd()
 
     def setFragmentShader(self, shader):
-        fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
-        self.program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
-        GL.glUseProgram(self.program)
-        GL.glUniform1f(GL.glGetUniformLocation(self.program, "_aspect"), float(self.width()) / self.height())
+        try:
+            fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
+            self.program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
+            GL.glUseProgram(self.program)
+            GL.glUniform1f(GL.glGetUniformLocation(self.program, "_aspect"), float(self.width()) / self.height())
+            self.setUniform("_x", self.x)
+            self.setUniform("_y", self.y)
+            self.setUniform("_z", self.z)
+        except Exception, e:
+            self.program = None
+            raise e
 
     def setUniform(self, name, value):
-        if isinstance(value, float):
+        if isinstance(value, float) and self.program is not None:
             GL.glUniform1f(GL.glGetUniformLocation(self.program, name), value)
 
     def move(self, x, y):
         self.x += float(x) / 10 / self.z
         self.y += float(y) / 10 / self.z
-        GL.glUniform1f(GL.glGetUniformLocation(self.program, "_x"), self.x)
-        GL.glUniform1f(GL.glGetUniformLocation(self.program, "_y"), self.y)
+        self.setUniform("_x", self.x)
+        self.setUniform("_y", self.y)
 
     def addSpeed(self, x, y):
         self.targetSpeed[0] += float(x)
@@ -79,7 +86,7 @@ class GLWidget(QtOpenGL.QGLWidget):
 
     def zoom(self, zoom):
         self.z *= 1.1 ** float(zoom)
-        GL.glUniform1f(GL.glGetUniformLocation(self.program, "_z"), self.z)
+        self.setUniform("_z", self.z)
 
     def tick(self):
         self.speed[0] = (self.speed[0]*15 + self.targetSpeed[0])/16
@@ -108,6 +115,7 @@ class MainWindow(QtGui.QMainWindow):
         self.docklayout.addStretch(0)
 
         self.uniforms = {}
+        self.filename = None
 
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(20)
@@ -145,7 +153,12 @@ class MainWindow(QtGui.QMainWindow):
         if not filename.isNull():
             self.loadFile(filename)
 
+    def reload(self):
+        if self.filename:
+            self.loadFile(self.filename)
+
     def loadFile(self, filename):
+        self.filename = filename
         try:
             data, fnames = preprocess(filename)
             self.glWidget.setFragmentShader(data)
@@ -187,6 +200,8 @@ class MainWindow(QtGui.QMainWindow):
             self.glWidget.zoom(-1)
         if e.key() == QtCore.Qt.Key_P:
             self.timeron = not self.timeron
+        if e.key() == QtCore.Qt.Key_R:
+            self.reload()
 
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat():
