@@ -6,8 +6,7 @@
 #define TAU (2 * PI)
 
 vec4 hsv2rgb(float h, float s, float v) {
-    h *= 6;
-
+    h = fract(h) * 6;
     float c = v * s;
     float x = c * (1 - abs(mod(h, 2) - 1));
     float m = v - c;
