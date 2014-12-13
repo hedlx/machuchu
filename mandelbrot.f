@@ -31,5 +31,6 @@ void main()
     vec4 pp = p;
     pp.x = p.x * 1.5 - 0.5;
     pp.y *= 1.5;
-    gl_FragColor = hsv2rgb(tan(time/10000)+mandel(pp.xy, int(param1)) / param1, 1, 1);
+    vec3 c = hsv2rgb(tan(time/10000)+mandel(pp.xy, int(param1)) / param1, 1, 1);
+    gl_FragColor = vec4(c, 1);
 }

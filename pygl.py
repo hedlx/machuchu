@@ -66,7 +66,7 @@ class GLWidget(QtOpenGL.QGLWidget):
             self.setUniform("_x", self.x)
             self.setUniform("_y", self.y)
             self.setUniform("_z", self.z)
-        except Exception, e:
+        except Exception as e:
             self.program = None
             raise e
 
