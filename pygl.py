@@ -6,6 +6,7 @@ import sys, re, traceback, signal
 from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
 import OpenGL.GL.shaders
+from preprocessor import preprocess
 
 ### global TODO: handle input (python code in shader comment, eval it),
 ###              advanced GUI generation (from comments)
@@ -146,8 +147,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def loadFile(self, filename):
         try:
-            with open(filename) as f:
-                data = f.read()
+            data, fnames = preprocess(filename)
             self.glWidget.setFragmentShader(data)
             self.updateUniforms(data)
         except:
