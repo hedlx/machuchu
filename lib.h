@@ -27,3 +27,8 @@ vec3 hsv2rgb(float h, float s, float v) {
 
     #undef ret
 }
+
+#define COLOR(RGB) vec3(\
+  (0x##RGB>>16&0xFF)/255., \
+  (0x##RGB>> 8&0xFF)/255., \
+  (0x##RGB>> 0&0xFF)/255.)
