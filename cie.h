@@ -51,6 +51,15 @@ const mat3 BRUCE_M = mat3(
 );
 const vec3 BRUCE_W = D65;
 
+vec3 gamma_correction(vec3 rgb, float gamma) {
+   #define f(t)\
+       t <= 0.00304\
+         ? 12.92*t\
+         : 1.055*pow(t, 1/gamma)-0.055
+   return map3(f, rgb);
+   #undef f
+}
+
 vec3 lab2xyz(float l, float a, float b) {
     vec3 _ = vec3((l + 16) / 116)
            + vec3(a / 500, 0, -b / 200);
@@ -66,4 +75,4 @@ vec3 lab2xyz(float l, float a, float b) {
 }
 
 #define lab2rgb(ws, l, a, b)\
-    ws ## _M * ws ## _W * lab2xyz(l, a, b)
+   gamma_correction(ws ## _W * lab2xyz(l, a, b) * ws ## _M, 2.4)
