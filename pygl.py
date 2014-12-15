@@ -2,7 +2,7 @@
 
 # vim: sw=4 ts=4 sts=4 et:
 
-import sys, re, traceback, signal
+import sys, re, traceback, signal, time, collections
 from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
 import OpenGL.GL.shaders
@@ -40,6 +40,7 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.x = 0.
         self.y = 0.
         self.z = 1.
+        self.times = collections.deque(maxlen=10)
 
     def initializeGL(self):
         self.vertexShader = GL.shaders.compileShader(self.vertexShaderData, GL.GL_VERTEX_SHADER)
@@ -56,6 +57,12 @@ class GLWidget(QtOpenGL.QGLWidget):
         GL.glVertex3f(-1., 1., 0.)
         GL.glVertex3f(1., 1., 0.)
         GL.glEnd()
+
+    def getFps(self):
+        if len(self.times) > 1:
+            return len(self.times) / (self.times[-1] - self.times[0])
+        else:
+            return 0
 
     def setFragmentShader(self, shader):
         try:
@@ -93,7 +100,7 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.speed[1] = (self.speed[1]*15 + self.targetSpeed[1])/16
         self.move(self.speed[0]/5, self.speed[1]/5)
         self.updateGL()
-
+        self.times.append(time.time())
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -181,6 +188,7 @@ class MainWindow(QtGui.QMainWindow):
             self.glWidget.setUniform('time', self.old)
         self.time.start()
         self.glWidget.tick()
+        self.setWindowTitle(str(self.glWidget.getFps()))
 
     def keyPressEvent(self, e):
         if not e.isAutoRepeat():
