@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
 import re
 
 class Numerator:
@@ -36,7 +39,12 @@ def preprocess(fname):
 
 if __name__ == "__main__":
     import sys
+    if len(sys.argv) != 2:
+        print("Usage:", sys.argv[0], "FILE")
+        exit(1)
     text, files = preprocess(sys.argv[1])
     print(text)
+    print('/* Used files:')
     for i, f in enumerate(files):
-        print("//", i, f)
+        print(" *  %d: %s" % (i, f))
+    print(" */")
