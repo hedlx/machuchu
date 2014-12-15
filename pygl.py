@@ -7,6 +7,7 @@ from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
 import OpenGL.GL.shaders
 from preprocessor import preprocess
+from updater import Updater
 
 ### global TODO: handle input (python code in shader comment, eval it),
 ###              advanced GUI generation (from comments)
@@ -123,6 +124,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.uniforms = {}
         self.filename = None
+        self.updater = None
 
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(20)
@@ -168,6 +170,7 @@ class MainWindow(QtGui.QMainWindow):
         self.filename = filename
         try:
             data, fnames = preprocess(filename)
+            self.updater = Updater(fnames)
             self.glWidget.setFragmentShader(data)
             self.updateUniforms(data)
         except:
@@ -183,6 +186,8 @@ class MainWindow(QtGui.QMainWindow):
             mb.exec_()
 
     def tick(self):
+        if self.updater and self.updater.check():
+            self.reload()
         if self.timeron and 'time' in self.uniforms:
             self.old = self.old + float(self.time.elapsed())
             self.glWidget.setUniform('time', self.old)
