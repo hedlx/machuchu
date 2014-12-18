@@ -111,7 +111,7 @@ class MainWindow(QtGui.QMainWindow):
         self.glWidget = GLWidget(self)
         self.setCentralWidget(self.glWidget)
         self.dock = QtGui.QDockWidget()
-#        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
 
         widget = QtGui.QWidget()
         self.docklayout = QtGui.QVBoxLayout()
@@ -123,6 +123,7 @@ class MainWindow(QtGui.QMainWindow):
         self.docklayout.addStretch(0)
 
         self.uniforms = {}
+        self.uniformWidgets = {}
         self.filename = None
         self.updater = None
 
@@ -131,21 +132,29 @@ class MainWindow(QtGui.QMainWindow):
         self.timer.timeout.connect(self.tick)
         self.timer.start()
         self.time = QtCore.QTime()
-        self.old = 0
+        self.uniforms['time'] = 0.
+        self.uniformWidgets['time'] = []
         self.time.start()
         self.timeron = True # FIXME
 
     def updateUniforms(self, data):
         r = re.compile(r'uniform\s+(\w+)\s+(\w+)(?:\s+=\s+([^;]+))?')
-        for type_, name, value in r.findall(data):
+        for name, widgets in self.uniformWidgets.items():
+            for widget in widgets:
+                widget.hide()
+        uniforms = r.findall(data)
+        for type_, name, value in uniforms:
             assert(type_ == 'float') ### TODO: hadle uniform type
-            if name in self.uniforms and name != 'time':
+            if name in self.uniforms:
                 self.glWidget.setUniform(name, float(self.uniforms[name]))
+                for widget in self.uniformWidgets[name]:
+                        widget.show()
             else:
                 self.uniforms[name] = value
                 if name != 'time':
-                    self.docklayout.addWidget(QtGui.QLabel(name))
+                    label = QtGui.QLabel(name)
                     edit = QtGui.QLineEdit(value)
+                    self.uniformWidgets[name] = [label, edit]
                     def l(text, n=name):
                         try:
                             v = float(text)
@@ -154,13 +163,14 @@ class MainWindow(QtGui.QMainWindow):
                         except ValueError:
                             pass
                     edit.textChanged.connect(l)
+                    self.docklayout.addWidget(label)
                     self.docklayout.addWidget(edit)
-        self.docklayout.addStretch(1)
+        #self.docklayout.addStretch(1)
 
     def load(self):
         filename = QtGui.QFileDialog.getOpenFileName(self, filter="Fragment shader (*.f)")
-        if not filename.isNull():
-            self.loadFile(filename)
+        if filename[0] != '':
+            self.loadFile(filename[0])
 
     def reload(self):
         if self.filename:
@@ -188,9 +198,9 @@ class MainWindow(QtGui.QMainWindow):
     def tick(self):
         if self.updater and self.updater.check():
             self.reload()
-        if self.timeron and 'time' in self.uniforms:
-            self.old = self.old + float(self.time.elapsed())
-            self.glWidget.setUniform('time', self.old)
+        if self.timeron:
+            self.uniforms['time'] += float(self.time.elapsed())
+            self.glWidget.setUniform('time', self.uniforms['time'])
         self.time.start()
         self.glWidget.tick()
         self.setWindowTitle(str(self.glWidget.getFps()))
