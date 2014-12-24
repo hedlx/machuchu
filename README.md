@@ -10,7 +10,7 @@ http://z0r.de/2430
 
 How to use
 ----------
-1. Run machuchu.
+1. Run ./machuchu.
 2. Click a "Load" button and choose a shader file (.f).
 3. Use W,A,S,D keys to pan a view, period and comma keys to zoom, C key to return to origin. Press Esc to quit, P to pause and F to toggle a panel. 
 4. The shader's code will be reloaded automatically if it changed.
