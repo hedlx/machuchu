@@ -38,6 +38,8 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.program = None
         self.targetSpeed = [0., 0.]
         self.speed = [0., 0.]
+        self.zoomSpeed = 0.
+        self.zoomTargetSpeed = 0.
         self.x = 0.
         self.y = 0.
         self.z = 1.
@@ -82,6 +84,14 @@ class GLWidget(QtOpenGL.QGLWidget):
         if isinstance(value, float) and self.program is not None:
             GL.glUniform1f(GL.glGetUniformLocation(self.program, name), value)
 
+    def origin(self):
+        self.x = 0.
+        self.y = 0.
+        self.targetSpeed = [0., 0.]
+        self.speed = [0., 0.]
+        self.setUniform("_x", self.x)
+        self.setUniform("_y", self.y)
+
     def move(self, x, y):
         self.x += float(x) / 10 / self.z
         self.y += float(y) / 10 / self.z
@@ -92,14 +102,18 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.targetSpeed[0] += float(x)
         self.targetSpeed[1] += float(y)
 
-    def zoom(self, zoom):
-        self.z *= 1.1 ** float(zoom)
-        self.setUniform("_z", self.z)
+    def addZoomSpeed(self, dz):
+        self.zoomTargetSpeed += float(dz)
 
     def tick(self):
         self.speed[0] = (self.speed[0]*15 + self.targetSpeed[0])/16
         self.speed[1] = (self.speed[1]*15 + self.targetSpeed[1])/16
         self.move(self.speed[0]/5, self.speed[1]/5)
+
+        self.zoomSpeed = (15*self.zoomSpeed + self.zoomTargetSpeed)/16
+        self.z *= 1.1 ** float(self.zoomSpeed)
+        self.setUniform("_z", self.z)
+
         self.updateGL()
         self.times.append(time.time())
 
@@ -204,7 +218,7 @@ class MainWindow(QtGui.QMainWindow):
         self.glWidget.tick()
         self.setWindowTitle(str(self.glWidget.getFps()))
 
-    def toggle_dock(self):
+    def toggleDock(self):
         if self.dock.isVisible():
             self.dock.hide()
         else:
@@ -220,16 +234,18 @@ class MainWindow(QtGui.QMainWindow):
                 self.glWidget.addSpeed(-1, 0)
             if e.key() == QtCore.Qt.Key_D:
                 self.glWidget.addSpeed(+1, 0)
+            if e.key() == QtCore.Qt.Key_Period:
+                self.glWidget.addZoomSpeed(1)
+            if e.key() == QtCore.Qt.Key_Comma:
+                self.glWidget.addZoomSpeed(-1)
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
-        if e.key() == QtCore.Qt.Key_Period:
-            self.glWidget.zoom(1)
-        if e.key() == QtCore.Qt.Key_Comma:
-            self.glWidget.zoom(-1)
         if e.key() == QtCore.Qt.Key_P:
             self.timeron = not self.timeron
         if e.key() == QtCore.Qt.Key_F:
-            self.toggle_dock()
+            self.toggleDock()
+        if e.key() == QtCore.Qt.Key_C:
+            self.glWidget.origin()
 
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat():
@@ -241,6 +257,11 @@ class MainWindow(QtGui.QMainWindow):
                 self.glWidget.addSpeed(+1, 0)
             if e.key() == QtCore.Qt.Key_D:
                 self.glWidget.addSpeed(-1, 0)
+            if e.key() == QtCore.Qt.Key_Period:
+                self.glWidget.addZoomSpeed(-1)
+            if e.key() == QtCore.Qt.Key_Comma:
+                self.glWidget.addZoomSpeed(1)
+
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 app = QtGui.QApplication(sys.argv)
