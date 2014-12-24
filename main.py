@@ -2,7 +2,7 @@
 
 # vim: sw=4 ts=4 sts=4 et:
 
-import sys, re, traceback, signal, time, collections
+import sys, re, traceback, signal, time, collections, atexit, os
 from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
 import OpenGL.GL.shaders
