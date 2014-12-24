@@ -16,9 +16,8 @@ How to use
 4. If the shader's code is changed during run, it will be reloaded automatically.
 
 
-Copyright
----------
 The MIT License (MIT)
+--------------------
 
 Copyright (c) 2014 yqy et al.
 
