@@ -112,7 +112,6 @@ class MainWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.glWidget)
         self.dock = QtGui.QDockWidget()
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
-
         widget = QtGui.QWidget()
         self.docklayout = QtGui.QVBoxLayout()
         loadButton = QtGui.QPushButton("Load")
@@ -205,6 +204,12 @@ class MainWindow(QtGui.QMainWindow):
         self.glWidget.tick()
         self.setWindowTitle(str(self.glWidget.getFps()))
 
+    def toggle_dock(self):
+        if self.dock.isVisible():
+            self.dock.hide()
+        else:
+            self.dock.show()
+
     def keyPressEvent(self, e):
         if not e.isAutoRepeat():
             if e.key() == QtCore.Qt.Key_W:
@@ -223,8 +228,8 @@ class MainWindow(QtGui.QMainWindow):
             self.glWidget.zoom(-1)
         if e.key() == QtCore.Qt.Key_P:
             self.timeron = not self.timeron
-        if e.key() == QtCore.Qt.Key_R:
-            self.reload()
+        if e.key() == QtCore.Qt.Key_F:
+            self.toggle_dock()
 
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat():
