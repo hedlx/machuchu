@@ -9,5 +9,5 @@ How to use:
     P to pause and R to reload the file. If the shader's code is changed
     during run, it will be reloaded automatically.
 
-We called it machuchu, because we love Miyamoto-sensei.
+We called it machuchu because we love Miyamoto-sensei.
 http://z0r.de/2430
