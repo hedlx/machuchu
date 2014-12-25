@@ -4,8 +4,8 @@ varying vec4 p;
 uniform float time;
 uniform int param1 = 6;
 uniform int param2 = 7;
-#pragma machachu slider param1 3 10
-#pragma machachu slider param2 3 10
+#pragma machachu slider param1 2 10
+#pragma machachu slider param2 2 10
 
 #include "lib.h"
 
@@ -38,6 +38,7 @@ void add(vec2 pos, vec3 color, vec2 center)
 
 void endless(int rank, float scale, float sat, float speed, vec2 center)
 {
+    if(rank <= 2) return;
     if(scale == 0)
         scale = (1 + sin(PI/rank)) / cos(PI/rank);
     vec2 p = p.xy - center;
