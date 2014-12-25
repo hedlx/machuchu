@@ -12,6 +12,42 @@ from updater import Updater
 ### global TODO: handle input (python code in shader comment, eval it),
 ###              advanced GUI generation (from comments)
 
+class PlainUniform:
+    def __init__(self, value=0.):
+        self.value = value
+
+    def update(self): # TODO: update(self, deps)
+        pass
+
+class TimeUniform:
+        def __init__(self):
+            self._start = QtCore.QTime()
+            self._start.start()
+            self.value = 0.
+
+        def update(self):
+            self.value = float(self._start.elapsed())
+
+class SmoothControlUniform:
+    def __init__(self, value=0., speed=0.):
+        self.value = value
+        self._speed = speed
+        self.speed = speed
+
+    def update(self):
+        self._speed = (15*self._speed + self.speed)/16
+        self.value += self._speed/5
+
+class MapUniform:
+    def __init__(self, uni, f):
+        self.uni = uni
+        self.f = f
+        self.value = self.f(self.uni.value)
+
+    def update(self):
+        self.uni.update()
+        self.value = self.f(self.uni.value)
+
 class GLWidget(QtOpenGL.QGLWidget):
     vertexShaderData = """
         #version 120
@@ -33,25 +69,28 @@ class GLWidget(QtOpenGL.QGLWidget):
     """
 
     def __init__(self, parent=None):
-        self.parent = parent
         super(GLWidget, self).__init__(parent)
+        self.parent = parent
         self.program = None
-        self.targetSpeed = [0., 0.]
-        self.speed = [0., 0.]
-        self.zoomSpeed = 0.
-        self.zoomTargetSpeed = 0.
-        self.x = 0.
-        self.y = 0.
-        self.z = 1.
         self.times = collections.deque(maxlen=10)
+        self.uniforms = {'time': TimeUniform(),
+                         '_x': SmoothControlUniform(),
+                         '_y': SmoothControlUniform(),
+                         '_z': MapUniform(SmoothControlUniform(), lambda x:1.1**x)
+                        }
+
+    def getFps(self):
+        if len(self.times) > 1:
+            return len(self.times) / (self.times[-1] - self.times[0])
+        else:
+            return 0
 
     def initializeGL(self):
         self.vertexShader = GL.shaders.compileShader(self.vertexShaderData, GL.GL_VERTEX_SHADER)
 
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
-        if(self.program):
-            GL.glUniform1f(GL.glGetUniformLocation(self.program, "_aspect"), float(width) / height)
+        self.setUniform("_aspect", float(width) / height)
 
     def paintGL(self):
         GL.glBegin(GL.GL_TRIANGLE_STRIP)
@@ -61,61 +100,31 @@ class GLWidget(QtOpenGL.QGLWidget):
         GL.glVertex3f(1., 1., 0.)
         GL.glEnd()
 
-    def getFps(self):
-        if len(self.times) > 1:
-            return len(self.times) / (self.times[-1] - self.times[0])
-        else:
-            return 0
+    def setUniform(self, name, value):
+        if isinstance(value, float) and self.program is not None:
+            GL.glUniform1f(GL.glGetUniformLocation(self.program, name), value)
+
+    def setUniforms(self):
+        for name, uni in self.uniforms.items():
+            self.setUniform(name, uni.value)
+
+    def tick(self):
+        for name, uni in self.uniforms.items():
+            uni.update()
+            self.setUniform(name, uni.value)
+        self.updateGL()
+        self.times.append(time.time())
 
     def setFragmentShader(self, shader):
         try:
             fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
             self.program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
             GL.glUseProgram(self.program)
-            GL.glUniform1f(GL.glGetUniformLocation(self.program, "_aspect"), float(self.width()) / self.height())
-            self.setUniform("_x", self.x)
-            self.setUniform("_y", self.y)
-            self.setUniform("_z", self.z)
+            self.setUniform("_aspect", float(self.width()) / self.height())
+            self.setUniforms()
         except Exception as e:
             self.program = None
             raise e
-
-    def setUniform(self, name, value):
-        if isinstance(value, float) and self.program is not None:
-            GL.glUniform1f(GL.glGetUniformLocation(self.program, name), value)
-
-    def origin(self):
-        self.x = 0.
-        self.y = 0.
-        self.targetSpeed = [0., 0.]
-        self.speed = [0., 0.]
-        self.setUniform("_x", self.x)
-        self.setUniform("_y", self.y)
-
-    def move(self, x, y):
-        self.x += float(x) / 10 / self.z
-        self.y += float(y) / 10 / self.z
-        self.setUniform("_x", self.x)
-        self.setUniform("_y", self.y)
-
-    def addSpeed(self, x, y):
-        self.targetSpeed[0] += float(x)
-        self.targetSpeed[1] += float(y)
-
-    def addZoomSpeed(self, dz):
-        self.zoomTargetSpeed += float(dz)
-
-    def tick(self):
-        self.speed[0] = (self.speed[0]*15 + self.targetSpeed[0])/16
-        self.speed[1] = (self.speed[1]*15 + self.targetSpeed[1])/16
-        self.move(self.speed[0]/5, self.speed[1]/5)
-
-        self.zoomSpeed = (15*self.zoomSpeed + self.zoomTargetSpeed)/16
-        self.z *= 1.1 ** float(self.zoomSpeed)
-        self.setUniform("_z", self.z)
-
-        self.updateGL()
-        self.times.append(time.time())
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -227,17 +236,17 @@ class MainWindow(QtGui.QMainWindow):
     def keyPressEvent(self, e):
         if not e.isAutoRepeat():
             if e.key() == QtCore.Qt.Key_W:
-                self.glWidget.addSpeed(0, +1)
+                self.glWidget.uniforms['_y'].speed += 1.
             if e.key() == QtCore.Qt.Key_S:
-                self.glWidget.addSpeed(0, -1)
+                self.glWidget.uniforms['_y'].speed -= 1.
             if e.key() == QtCore.Qt.Key_A:
-                self.glWidget.addSpeed(-1, 0)
+                self.glWidget.uniforms['_x'].speed -= 1.
             if e.key() == QtCore.Qt.Key_D:
-                self.glWidget.addSpeed(+1, 0)
+                self.glWidget.uniforms['_x'].speed += 1.
             if e.key() == QtCore.Qt.Key_Period:
-                self.glWidget.addZoomSpeed(1)
+                self.glWidget.uniforms['_z'].uni.speed += 1.
             if e.key() == QtCore.Qt.Key_Comma:
-                self.glWidget.addZoomSpeed(-1)
+                self.glWidget.uniforms['_z'].uni.speed -= 1.
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
         if e.key() == QtCore.Qt.Key_P:
@@ -250,23 +259,26 @@ class MainWindow(QtGui.QMainWindow):
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat():
             if e.key() == QtCore.Qt.Key_W:
-                self.glWidget.addSpeed(0, -1)
+                self.glWidget.uniforms['_y'].speed -= 1.
             if e.key() == QtCore.Qt.Key_S:
-                self.glWidget.addSpeed(0, +1)
+                self.glWidget.uniforms['_y'].speed += 1.
             if e.key() == QtCore.Qt.Key_A:
-                self.glWidget.addSpeed(+1, 0)
+                self.glWidget.uniforms['_x'].speed += 1.
             if e.key() == QtCore.Qt.Key_D:
-                self.glWidget.addSpeed(-1, 0)
+                self.glWidget.uniforms['_x'].speed -= 1.
             if e.key() == QtCore.Qt.Key_Period:
-                self.glWidget.addZoomSpeed(-1)
+                self.glWidget.uniforms['_z'].uni.speed -= 1.
             if e.key() == QtCore.Qt.Key_Comma:
-                self.glWidget.addZoomSpeed(1)
+                self.glWidget.uniforms['_z'].uni.speed += 1.
 
+def main():
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    app = QtGui.QApplication(sys.argv)
+    win = MainWindow()
+    win.show()
+    args = QtGui.QApplication.arguments()
+    if len(args) > 1:
+        win.loadFile(args[1])
+    sys.exit(app.exec_())
 
-signal.signal(signal.SIGINT, signal.SIG_DFL)
-app = QtGui.QApplication(sys.argv)
-win = MainWindow()
-win.show()
-if len(QtGui.QApplication.arguments()) > 1:
-    win.loadFile(QtGui.QApplication.arguments()[1])
-sys.exit(app.exec_())
+main()
