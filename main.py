@@ -93,8 +93,10 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.program = program
 
     def setUniform(self, name, value):
-        if isinstance(value, float) and self.program is not None:
-            GL.glUniform1f(GL.glGetUniformLocation(self.program, name), value)
+        if self.program is not None:
+            loc = GL.glGetUniformLocation(self.program, name)
+            if isinstance(value, float): GL.glUniform1f(loc, value)
+            if isinstance(value, int): GL.glUniform1i(loc, value)
 
     def tick(self):
         self.coord.update()
@@ -116,16 +118,11 @@ def lineEditUniform(name, value, setUniform):
 
 def sliderUniform(name, value, min, max, setUniform):
     label = QtGui.QLabel(name)
-    slider = QtGui.QSlider()
-    slider.setValue(int(value))
+    slider = QtGui.QSlider(QtCore.Qt.Orientation.Horizontal)
+    slider.setValue(value)
     slider.setMinimum(min)
     slider.setMaximum(max)
-    def l(value, n=name):
-        try:
-            setUniform(n, float(value))
-        except ValueError:
-            pass
-    slider.valueChanged.connect(l)
+    slider.valueChanged.connect(lambda v: setUniform(name, v))
     return [label, slider]
 
 class MainWindow(QtGui.QMainWindow):
@@ -165,29 +162,37 @@ class MainWindow(QtGui.QMainWindow):
         self.uniforms[name] = value
         self.glWidget.setUniform(name, value)
 
+    def setUniformWidgets(self, name, widgets):
+        self.uniformWidgets[name] = widgets
+        for widget in widgets:
+            self.docklayout.addWidget(widget)
+
     def updateUniforms(self, data):
         r = re.compile(r'uniform\s+(\w+)\s+(\w+)(?:\s+=\s+([^;]+))?')
         for name, widgets in self.uniformWidgets.items():
             for widget in widgets:
                 widget.hide()
-        uniforms = r.findall(data)
+
+        uniforms = r.findall(data) # TODO: remove uniform parser
         for type_, name, value in uniforms:
-            assert(type_ == 'float') ### TODO: hadle uniform type
+            if type_ != 'float': continue
             if name in self.uniforms:
                 self.glWidget.setUniform(name, float(self.uniforms[name]))
                 for widget in self.uniformWidgets[name]:
-                        widget.show()
+                    widget.show()
             else:
                 self.uniforms[name] = value
-                widgets = []
                 if name != 'time':
-                    if name.startswith("slider_"): ### TODO: better way to handle widget type
-                        widgets += sliderUniform(name, value, 1, 20, self.setUniform)
-                    else:
-                        widgets = lineEditUniform(name, value, self.setUniform)
-                self.uniformWidgets[name] = widgets
-                for widget in widgets:
-                    self.docklayout.addWidget(widget)
+                    self.setUniformWidgets(name, lineEditUniform(name, value, self.setUniform))
+
+        r = re.compile(r'^\s*#\s*pragma\s+machachu\s+(.*)$', re.M)
+        for params in r.findall(data):
+            params = re.split("\s+", params)
+            if len(params) == 5 and params[0] == 'slider':
+                value,min,max = map(int, params[2:5])
+                widgets = sliderUniform(params[1], value, min, max, self.setUniform)
+                self.setUniformWidgets(params[1], widgets)
+
         #self.docklayout.addStretch(1)
 
     def load(self):

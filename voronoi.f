@@ -2,8 +2,10 @@
 
 varying vec4 p;
 uniform float time;
-uniform float slider_p1 = 6;
-uniform float slider_p2 = 7;
+uniform int param1 = 6;
+uniform int param2 = 7;
+#pragma machachu slider param1 6 3 10
+#pragma machachu slider param2 7 3 10
 
 #include "lib.h"
 
@@ -59,8 +61,8 @@ void endless(int rank, float scale, float sat, float speed, vec2 center)
 
 void main()
 {
-    endless(int(slider_p1), 0, 1.0, 100000, vec2(0));
-    endless(int(slider_p2), 0, 1.0, 100000, vec2(0));
+    endless(param1, 0, 1.0, 100000, vec2(0));
+    endless(param2, 0, 0.5,  10000, vec2(0));
     #ifdef DEBUG_RINGS
     debug_rings = mod(1000+debug_rings, DEBUG_RINGS)/2/DEBUG_RINGS + 0.5;
     #else
