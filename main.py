@@ -5,6 +5,7 @@
 import sys, re, traceback, signal, time, collections, atexit, os
 from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
+import OpenGL.arrays
 import OpenGL.GL.shaders
 from preprocessor import preprocess
 from updater import Updater
@@ -95,6 +96,18 @@ class GLWidget(QtOpenGL.QGLWidget):
     def getFps(self):
         return len(self.times) / (self.times[-1] - self.times[0])
 
+    def getUniforms(self):
+        result = {}
+        count = GL.glGetProgramiv(self.program, GL.GL_ACTIVE_UNIFORMS)
+        for i  in range(count):
+            name, size, type_ = GL.glGetActiveUniform(self.program, i)
+            loc = GL.glGetUniformLocation(self.program, name)
+            if size == 1 and type_ == GL.GL_INT:
+                arr = OpenGL.arrays.GLintArray.zeros(1)
+                GL.glGetUniformiv(self.program, loc, arr)
+                result[name] = arr[0]
+        return result
+
     def setFragmentShader(self, shader):
         fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
         program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
@@ -182,7 +195,7 @@ class MainWindow(QtGui.QMainWindow):
         for widget in widgets:
             self.docklayout.addWidget(widget)
 
-    def updateUniforms(self, data):
+    def updateUniforms(self, data, defaultUniforms):
         r = re.compile(r'uniform\s+(\w+)\s+(\w+)(?:\s+=\s+([^;]+))?')
         for name, widgets in self.uniformWidgets.items():
             for widget in widgets:
@@ -203,10 +216,13 @@ class MainWindow(QtGui.QMainWindow):
         r = re.compile(r'^\s*#\s*pragma\s+machachu\s+(.*)$', re.M)
         for params in r.findall(data):
             params = re.split("\s+", params)
-            if len(params) == 5 and params[0] == 'slider':
+            if len(params) == 4 and params[0] == 'slider':
                 name = params[1]
-                value,min,max = map(int, params[2:5])
-                if name in self.uniforms: value = self.uniforms[name]
+                min,max = map(int, params[2:4])
+                if name in self.uniforms:
+                    value = self.uniforms[name]
+                else:
+                    value = defaultUniforms[name]
                 widgets = sliderUniform(name, value, min, max, self.setUniform)
                 self.setUniformWidgets(name, widgets)
 
@@ -227,7 +243,7 @@ class MainWindow(QtGui.QMainWindow):
             data, fnames = preprocess(filename)
             self.updater = Updater(fnames)
             self.glWidget.setFragmentShader(data)
-            self.updateUniforms(data)
+            self.updateUniforms(data, self.glWidget.getUniforms())
         except:
             e = sys.exc_info()[1]
             text = str(e)

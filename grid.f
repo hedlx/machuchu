@@ -4,9 +4,9 @@ varying vec4 p;
 
 uniform float time;
 uniform int x_period = 8;
-#pragma machachu slider x_period 8 1 30
+#pragma machachu slider x_period 1 30
 uniform int y_period = 8;
-#pragma machachu slider y_period 8 1 30
+#pragma machachu slider y_period 1 30
 
 const float TRESHOLD = 0.99;
 const float PI = 3.1415926535897932384626433832795;

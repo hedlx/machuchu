@@ -4,8 +4,8 @@ varying vec4 p;
 uniform float time;
 uniform int param1 = 6;
 uniform int param2 = 7;
-#pragma machachu slider param1 6 3 10
-#pragma machachu slider param2 7 3 10
+#pragma machachu slider param1 3 10
+#pragma machachu slider param2 3 10
 
 #include "lib.h"
 
