@@ -26,6 +26,18 @@ class CoordUniform:
         if y: self.y = f(self.y, y)
         if z: self.z = f(self.z, z)
 
+    def addSpeed(self, x=0., y=0., z=0.):
+        f = lambda v, d: (v[0], v[1]+d, v[2])
+        if x: self.x = f(self.x, x)
+        if y: self.y = f(self.y, y)
+        if z: self.z = f(self.z, z)
+
+    def addPosn(self, x=0., y=0., z=0.):
+        f = lambda v, d: (v[0]+d, v[1], v[2])
+        if x: self.x = f(self.x, x)
+        if y: self.y = f(self.y, y)
+        if z: self.z = f(self.z, z)
+
     def update(self):
         f = lambda v, s: (v[0]+v[1]/s, (v[1]*15 + v[2])/16, v[2])
         z = 25*1.1**self.z[0]
@@ -158,6 +170,8 @@ class MainWindow(QtGui.QMainWindow):
         self.uniformWidgets['time'] = []
         self.time.start()
         self.timeron = True # FIXME
+        self.mouse_pos = (0, 0)
+
 
     def setUniform(self, name, value):
         self.uniforms[name] = value
@@ -268,7 +282,6 @@ class MainWindow(QtGui.QMainWindow):
             self.load()
 
 
-
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat():
             if e.key() == QtCore.Qt.Key_W:
@@ -283,6 +296,23 @@ class MainWindow(QtGui.QMainWindow):
                 self.glWidget.coord.add(z=-1)
             if e.key() == QtCore.Qt.Key_Comma:
                 self.glWidget.coord.add(z=+1)
+
+    def wheelEvent(self, e):
+        if (e.delta() > 0): self.glWidget.coord.addSpeed(z=+0.8)
+        if (e.delta() < 0): self.glWidget.coord.addSpeed(z=-0.8)
+
+    def mousePressEvent(self, mouseEvent):
+        if mouseEvent.button() == QtCore.Qt.MouseButton.MidButton:
+            self.mouse_pos = (mouseEvent.pos().x(), mouseEvent.pos().y())
+
+    def mouseMoveEvent(self, mouseEvent):
+        if mouseEvent.buttons() == QtCore.Qt.MouseButton.MidButton:
+            dx = self.mouse_pos[0] - mouseEvent.pos().x()
+            dy = mouseEvent.pos().y() - self.mouse_pos[1]
+            self.mouse_pos = (mouseEvent.pos().x(), mouseEvent.pos().y())
+            self.glWidget.coord.addPosn(x=2.*float(dx)/float(self.glWidget.width()))
+            self.glWidget.coord.addPosn(y=2.*float(dy)/float(self.glWidget.height()))
+
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 app = QtGui.QApplication(sys.argv)
