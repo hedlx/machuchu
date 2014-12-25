@@ -128,7 +128,7 @@ class MainWindow(QtGui.QMainWindow):
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
         widget = QtGui.QWidget()
         self.docklayout = QtGui.QVBoxLayout()
-        loadButton = QtGui.QPushButton("Load")
+        loadButton = QtGui.QPushButton("Load", shortcut=QtCore.Qt.CTRL + QtCore.Qt.Key_O)
         loadButton.clicked.connect(self.load)
         self.docklayout.addWidget(loadButton)
         widget.setLayout(self.docklayout)
