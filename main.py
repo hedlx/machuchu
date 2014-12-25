@@ -102,6 +102,7 @@ class GLWidget(QtOpenGL.QGLWidget):
         for i  in range(count):
             name, size, type_ = GL.glGetActiveUniform(self.program, i)
             loc = GL.glGetUniformLocation(self.program, name)
+            name = name.decode()
             if size == 1 and type_ == GL.GL_INT:
                 arr = OpenGL.arrays.GLintArray.zeros(1)
                 GL.glGetUniformiv(self.program, loc, arr)
