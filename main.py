@@ -12,6 +12,31 @@ from updater import Updater
 ### global TODO: handle input (python code in shader comment, eval it),
 ###              advanced GUI generation (from comments)
 
+class CoordUniform:
+    def __init__(self):
+        self.x = self.y = self.z = (0., 0., 0.)
+
+    def origin(self):
+        self.x = self.y = (0., 0., 0.)
+
+    def add(self, x=0., y=0., z=0.):
+        f = lambda v, d: (v[0], v[1], v[2]+d)
+        if x: self.x = f(self.x, x)
+        if y: self.y = f(self.y, y)
+        if z: self.z = f(self.z, z)
+
+    def update(self):
+        f = lambda v, s: (v[0]+v[1]/s, (v[1]*15 + v[2])/16, v[2])
+        z = 25*1.1**self.z[0]
+        self.x = f(self.x, z)
+        self.y = f(self.y, z)
+        self.z = f(self.z, 5)
+        
+    def items(self):
+        yield "_x", self.x[0]
+        yield "_y", self.y[0]
+        yield "_z", 1.1**self.z[0]
+
 class GLWidget(QtOpenGL.QGLWidget):
     vertexShaderData = """
         #version 120
@@ -36,22 +61,15 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.parent = parent
         super(GLWidget, self).__init__(parent)
         self.program = None
-        self.targetSpeed = [0., 0.]
-        self.speed = [0., 0.]
-        self.zoomSpeed = 0.
-        self.zoomTargetSpeed = 0.
-        self.x = 0.
-        self.y = 0.
-        self.z = 1.
-        self.times = collections.deque(maxlen=10)
+        self.times = collections.deque([0], maxlen=10)
+        self.coord = CoordUniform()
 
     def initializeGL(self):
         self.vertexShader = GL.shaders.compileShader(self.vertexShaderData, GL.GL_VERTEX_SHADER)
 
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
-        if(self.program):
-            GL.glUniform1f(GL.glGetUniformLocation(self.program, "_aspect"), float(width) / height)
+        self.setUniform("_aspect", float(width) / height)
 
     def paintGL(self):
         GL.glBegin(GL.GL_TRIANGLE_STRIP)
@@ -62,58 +80,25 @@ class GLWidget(QtOpenGL.QGLWidget):
         GL.glEnd()
 
     def getFps(self):
-        if len(self.times) > 1:
-            return len(self.times) / (self.times[-1] - self.times[0])
-        else:
-            return 0
+        return len(self.times) / (self.times[-1] - self.times[0])
 
     def setFragmentShader(self, shader):
-        try:
-            fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
-            self.program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
-            GL.glUseProgram(self.program)
-            GL.glUniform1f(GL.glGetUniformLocation(self.program, "_aspect"), float(self.width()) / self.height())
-            self.setUniform("_x", self.x)
-            self.setUniform("_y", self.y)
-            self.setUniform("_z", self.z)
-        except Exception as e:
-            self.program = None
-            raise e
+        fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
+        program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
+        GL.glUseProgram(program)
+        self.setUniform("_aspect", float(self.width()) / self.height())
+        for name, value in self.coord.items():
+            self.setUniform(name, value)
+        self.program = program
 
     def setUniform(self, name, value):
         if isinstance(value, float) and self.program is not None:
             GL.glUniform1f(GL.glGetUniformLocation(self.program, name), value)
 
-    def origin(self):
-        self.x = 0.
-        self.y = 0.
-        self.targetSpeed = [0., 0.]
-        self.speed = [0., 0.]
-        self.setUniform("_x", self.x)
-        self.setUniform("_y", self.y)
-
-    def move(self, x, y):
-        self.x += float(x) / 10 / self.z
-        self.y += float(y) / 10 / self.z
-        self.setUniform("_x", self.x)
-        self.setUniform("_y", self.y)
-
-    def addSpeed(self, x, y):
-        self.targetSpeed[0] += float(x)
-        self.targetSpeed[1] += float(y)
-
-    def addZoomSpeed(self, dz):
-        self.zoomTargetSpeed += float(dz)
-
     def tick(self):
-        self.speed[0] = (self.speed[0]*15 + self.targetSpeed[0])/16
-        self.speed[1] = (self.speed[1]*15 + self.targetSpeed[1])/16
-        self.move(self.speed[0]/5, self.speed[1]/5)
-
-        self.zoomSpeed = (15*self.zoomSpeed + self.zoomTargetSpeed)/16
-        self.z *= 1.1 ** float(self.zoomSpeed)
-        self.setUniform("_z", self.z)
-
+        self.coord.update()
+        for name, value in self.coord.items():
+            self.setUniform(name, value)
         self.updateGL()
         self.times.append(time.time())
 
@@ -227,17 +212,17 @@ class MainWindow(QtGui.QMainWindow):
     def keyPressEvent(self, e):
         if not e.isAutoRepeat():
             if e.key() == QtCore.Qt.Key_W:
-                self.glWidget.addSpeed(0, +1)
+                self.glWidget.coord.add(y=+1)
             if e.key() == QtCore.Qt.Key_S:
-                self.glWidget.addSpeed(0, -1)
+                self.glWidget.coord.add(y=-1)
             if e.key() == QtCore.Qt.Key_A:
-                self.glWidget.addSpeed(-1, 0)
+                self.glWidget.coord.add(x=-1)
             if e.key() == QtCore.Qt.Key_D:
-                self.glWidget.addSpeed(+1, 0)
+                self.glWidget.coord.add(x=+1)
             if e.key() == QtCore.Qt.Key_Period:
-                self.glWidget.addZoomSpeed(1)
+                self.glWidget.coord.add(z=+1)
             if e.key() == QtCore.Qt.Key_Comma:
-                self.glWidget.addZoomSpeed(-1)
+                self.glWidget.coord.add(z=-1)
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
         if e.key() == QtCore.Qt.Key_P:
@@ -245,23 +230,22 @@ class MainWindow(QtGui.QMainWindow):
         if e.key() == QtCore.Qt.Key_F:
             self.toggleDock()
         if e.key() == QtCore.Qt.Key_C:
-            self.glWidget.origin()
+            self.glWidget.coord.origin()
 
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat():
             if e.key() == QtCore.Qt.Key_W:
-                self.glWidget.addSpeed(0, -1)
+                self.glWidget.coord.add(y=-1)
             if e.key() == QtCore.Qt.Key_S:
-                self.glWidget.addSpeed(0, +1)
+                self.glWidget.coord.add(y=+1)
             if e.key() == QtCore.Qt.Key_A:
-                self.glWidget.addSpeed(+1, 0)
+                self.glWidget.coord.add(x=+1)
             if e.key() == QtCore.Qt.Key_D:
-                self.glWidget.addSpeed(-1, 0)
+                self.glWidget.coord.add(x=-1)
             if e.key() == QtCore.Qt.Key_Period:
-                self.glWidget.addZoomSpeed(-1)
+                self.glWidget.coord.add(z=-1)
             if e.key() == QtCore.Qt.Key_Comma:
-                self.glWidget.addZoomSpeed(1)
-
+                self.glWidget.coord.add(z=+1)
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 app = QtGui.QApplication(sys.argv)
