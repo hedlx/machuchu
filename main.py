@@ -103,9 +103,14 @@ class GLWidget(QtOpenGL.QGLWidget):
             name, size, type_ = GL.glGetActiveUniform(self.program, i)
             loc = GL.glGetUniformLocation(self.program, name)
             name = name.decode()
+            if name[0] == '_': continue # FIXME: ignore uniforms from vertexShaderData
             if size == 1 and type_ == GL.GL_INT:
                 arr = OpenGL.arrays.GLintArray.zeros(1)
                 GL.glGetUniformiv(self.program, loc, arr)
+                result[name] = arr[0]
+            if size == 1 and type_ == GL.GL_FLOAT:
+                arr = OpenGL.arrays.GLfloatArray.zeros(1)
+                GL.glGetUniformfv(self.program, loc, arr)
                 result[name] = arr[0]
         return result
 
@@ -131,26 +136,58 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.updateGL()
         self.times.append(time.time())
 
-def lineEditUniform(name, value, setUniform):
-    label = QtGui.QLabel(name)
-    edit = QtGui.QLineEdit(value)
-    def l(text, n=name):
-        try:
-            setUniform(n, float(text))
-        except ValueError:
-            pass
-    edit.textChanged.connect(l)
-    return [label, edit]
+class UniformBase(object):
+    def __init__(self, parent, name, value):
+        self.parent = parent
+        self.name = name
+        self.value = value
 
-def sliderUniform(name, value, min, max, setUniform):
-    label = QtGui.QLabel(name)
-    slider = QtGui.QSlider(QtCore.Qt.Orientation.Horizontal)
-    slider.setMinimum(min)
-    slider.setMaximum(max)
-    slider.setValue(value)
-    slider.valueChanged.connect(lambda v: setUniform(name, v))
-    setUniform(name, slider.value())
-    return [label, slider]
+    def init_widgets(self, widgets):
+        self.widgets = widgets
+        for w in widgets:
+            self.parent.docklayout.addWidget(w)
+
+    def hide(self):
+        for w in self.widgets: w.hide()
+
+    def show(self):
+        for w in self.widgets: w.show()
+
+    def delete(self):
+        for w in self.widgets: w.setParent(None)
+
+class LineEditUniform(UniformBase):
+    def __init__(self, parent, name, value):
+        super(LineEditUniform, self).__init__(parent, name, value)
+        label = QtGui.QLabel(name)
+        edit = QtGui.QLineEdit(str(value))
+        def l(text):
+            try: self.value = float(text)
+            except ValueError: return
+            self.parent.glWidget.setUniform(name, self.value)
+        edit.textChanged.connect(l)
+        self.init_widgets([label, edit])
+
+    def update(self):
+        self.parent.glWidget.setUniform(self.name, self.value)
+
+class SliderUniform(UniformBase):
+    def __init__(self, parent, name, value, min, max):
+        super(SliderUniform, self).__init__(parent, name, value)
+        self.slider = QtGui.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.slider.setValue(value)
+        self.update(min, max)
+        self.slider.valueChanged.connect(lambda x: self.setValue(x))
+        self.init_widgets([QtGui.QLabel(name), self.slider])
+
+    def setValue(self, value):
+        self.value = value
+        self.parent.glWidget.setUniform(self.name, value)
+
+    def update(self, min, max):
+        self.slider.setMinimum(min)
+        self.slider.setMaximum(max)
+        self.parent.glWidget.setUniform(self.name, self.value)
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -171,7 +208,6 @@ class MainWindow(QtGui.QMainWindow):
         self.docklayout.addStretch(0)
 
         self.uniforms = {}
-        self.uniformWidgets = {}
         self.filename = None
         self.updater = None
 
@@ -180,54 +216,41 @@ class MainWindow(QtGui.QMainWindow):
         self.timer.timeout.connect(self.tick)
         self.timer.start()
         self.time = QtCore.QTime()
-        self.uniforms['time'] = 0.
-        self.uniformWidgets['time'] = []
         self.time.start()
+        self.time_uniform = 0.
         self.timeron = True # FIXME
         self.mouse_pos = (0, 0)
 
-
-    def setUniform(self, name, value):
-        self.uniforms[name] = value
-        self.glWidget.setUniform(name, value)
-
-    def setUniformWidgets(self, name, widgets):
-        self.uniformWidgets[name] = widgets
-        for widget in widgets:
-            self.docklayout.addWidget(widget)
-
-    def updateUniforms(self, data, defaultUniforms):
-        r = re.compile(r'uniform\s+(\w+)\s+(\w+)(?:\s+=\s+([^;]+))?')
-        for name, widgets in self.uniformWidgets.items():
-            for widget in widgets:
-                widget.hide()
-
-        uniforms = r.findall(data) # TODO: remove uniform parser
-        for type_, name, value in uniforms:
-            if type_ != 'float': continue
-            if name in self.uniforms:
-                self.glWidget.setUniform(name, float(self.uniforms[name]))
-                for widget in self.uniformWidgets[name]:
-                    widget.show()
-            else:
-                self.uniforms[name] = value
-                if name != 'time':
-                    self.setUniformWidgets(name, lineEditUniform(name, value, self.setUniform))
-
+    def updateUniforms(self, data, uniforms):
+        for uni in self.uniforms.values():
+            uni.hide()
+        unpragmed = set(uniforms)
         r = re.compile(r'^\s*#\s*pragma\s+machachu\s+(.*)$', re.M)
         for params in r.findall(data):
             params = re.split("\s+", params)
             if len(params) == 4 and params[0] == 'slider':
                 name = params[1]
+                value = uniforms[name]
                 min,max = map(int, params[2:4])
-                if name in self.uniforms:
-                    value = self.uniforms[name]
+                old = self.uniforms.get(name, None)
+                if isinstance(old, SliderUniform):
+                    old.update(min, max)
+                    old.show()
                 else:
-                    value = defaultUniforms[name]
-                widgets = sliderUniform(name, value, min, max, self.setUniform)
-                self.setUniformWidgets(name, widgets)
+                    if old != None: old.delete()
+                    self.uniforms[name] = SliderUniform(self, name, value, min, max)
+                unpragmed.remove(name)
 
-        #self.docklayout.addStretch(1)
+        for name in unpragmed:
+            if name == 'time': continue
+            value = uniforms[name]
+            old = self.uniforms.get(name, None)
+            if isinstance(old, LineEditUniform):
+                old.update()
+                old.show()
+            else:
+                if old != None: old.delete()
+                self.uniforms[name] = LineEditUniform(self, name, value)
 
     def load(self):
         filename = QtGui.QFileDialog.getOpenFileName(self, filter="Fragment shader (*.f)")
@@ -261,8 +284,8 @@ class MainWindow(QtGui.QMainWindow):
         if self.updater and self.updater.check():
             self.reload()
         if self.timeron:
-            self.uniforms['time'] += float(self.time.elapsed())
-            self.glWidget.setUniform('time', self.uniforms['time'])
+            self.time_uniform += float(self.time.elapsed())
+            self.glWidget.setUniform('time', self.time_uniform)
         self.time.start()
         self.glWidget.tick()
         self.setWindowTitle(str(self.glWidget.getFps()))
