@@ -17,7 +17,8 @@ class CoordUniform:
         self.x = self.y = self.z = (0., 0., 0.)
 
     def origin(self):
-        self.x = self.y = (0., 0., 0.)
+        self.x = (0.0, 0.0, self.x[2])
+        self.y = (0.0, 0.0, self.y[2])
 
     def add(self, x=0., y=0., z=0.):
         f = lambda v, d: (v[0], v[1], v[2]+d)
@@ -31,7 +32,7 @@ class CoordUniform:
         self.x = f(self.x, z)
         self.y = f(self.y, z)
         self.z = f(self.z, 5)
-        
+
     def items(self):
         yield "_x", self.x[0]
         yield "_y", self.y[0]
