@@ -103,6 +103,19 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.updateGL()
         self.times.append(time.time())
 
+def lineEditUniform(name, value, setUniform):
+    label = QtGui.QLabel(name)
+    edit = QtGui.QLineEdit(value)
+    widgets = [label, edit]
+    def l(text, n=name):
+        try:
+            v = float(text)
+            setUniform(n, v)
+        except ValueError:
+            pass
+    edit.textChanged.connect(l)
+    return widgets
+
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -136,6 +149,10 @@ class MainWindow(QtGui.QMainWindow):
         self.time.start()
         self.timeron = True # FIXME
 
+    def setUniform(self, name, value):
+        self.uniforms[name] = value
+        self.glWidget.setUniform(name, value)
+
     def updateUniforms(self, data):
         r = re.compile(r'uniform\s+(\w+)\s+(\w+)(?:\s+=\s+([^;]+))?')
         for name, widgets in self.uniformWidgets.items():
@@ -150,20 +167,12 @@ class MainWindow(QtGui.QMainWindow):
                         widget.show()
             else:
                 self.uniforms[name] = value
+                widgets = []
                 if name != 'time':
-                    label = QtGui.QLabel(name)
-                    edit = QtGui.QLineEdit(value)
-                    self.uniformWidgets[name] = [label, edit]
-                    def l(text, n=name):
-                        try:
-                            v = float(text)
-                            self.uniforms[n] = v
-                            self.glWidget.setUniform(n, v)
-                        except ValueError:
-                            pass
-                    edit.textChanged.connect(l)
-                    self.docklayout.addWidget(label)
-                    self.docklayout.addWidget(edit)
+                    widgets = lineEditUniform(name, value, self.setUniform)
+                self.uniformWidgets[name] = widgets
+                for widget in widgets:
+                    self.docklayout.addWidget(widget)
         #self.docklayout.addStretch(1)
 
     def load(self):
