@@ -119,10 +119,11 @@ def lineEditUniform(name, value, setUniform):
 def sliderUniform(name, value, min, max, setUniform):
     label = QtGui.QLabel(name)
     slider = QtGui.QSlider(QtCore.Qt.Orientation.Horizontal)
-    slider.setValue(value)
     slider.setMinimum(min)
     slider.setMaximum(max)
+    slider.setValue(value)
     slider.valueChanged.connect(lambda v: setUniform(name, v))
+    setUniform(name, slider.value())
     return [label, slider]
 
 class MainWindow(QtGui.QMainWindow):
@@ -189,9 +190,11 @@ class MainWindow(QtGui.QMainWindow):
         for params in r.findall(data):
             params = re.split("\s+", params)
             if len(params) == 5 and params[0] == 'slider':
+                name = params[1]
                 value,min,max = map(int, params[2:5])
-                widgets = sliderUniform(params[1], value, min, max, self.setUniform)
-                self.setUniformWidgets(params[1], widgets)
+                if name in self.uniforms: value = self.uniforms[name]
+                widgets = sliderUniform(name, value, min, max, self.setUniform)
+                self.setUniformWidgets(name, widgets)
 
         #self.docklayout.addStretch(1)
 
