@@ -3,11 +3,11 @@
 
 Synopsis
 --------
-Machuchu - a GLSL viewer.
+Machachu - a GLSL viewer.
 
-Machuchu fetches uniforms in your a fragment shader code (.f files) and displays it as a text field on a panel.
+Machachu fetches uniforms in your a fragment shader code (.f files) and displays it as a text field on a panel.
 
-We called it machuchu because we love Miyamoto-sensei.
+We called it machachu because we love Miyamoto-sensei.
 http://z0r.de/2430
 
 Usage
