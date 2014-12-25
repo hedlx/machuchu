@@ -44,17 +44,18 @@ class PlainUniform:
         pass
 
 class TimeUniform:
-        def __init__(self):
-            self._start = QtCore.QTime()
-            self._start.start()
+        def __init__(self, start = 0.):
+            self._timer = QtCore.QTime()
+            self._timer.start()
+            self._start = start
             self.value = 0.
             self.deps = []
 
         def update(self, deps):
-            self.value = float(self._start.elapsed())
+            self.value = self._start + float(self._timer.elapsed())
 
 class SmoothControlUniform:
-    def __init__(self, strength=None, value=0., speed=0.):
+    def __init__(self, value=0., speed=0., strength=None):
         self.value = value
         self._speed = speed
         self.speed = speed
@@ -76,6 +77,28 @@ class MapUniform:
     def update(self, deps):
         self.uni.update(deps)
         self.value = self.f(self.uni.value)
+
+class Uniforms:
+    def __init__(self):
+        self.uniforms = {}
+
+    def items(self):
+        for name, uni in self.uniforms.items():
+            yield name, uni.value
+
+    def update(self):
+        gr = {name:uni.deps for name,uni in self.uniforms.items()}
+        for name in topsort(gr):
+            uni = self.uniforms[name]
+            deps = {dep:self.uniforms[dep].value for dep in uni.deps}
+            uni.update(deps)
+            yield name, uni.value
+
+    def __setitem__(self, k, v):
+        self.uniforms[k] = v
+
+    def __getitem__(self, k):
+        return self.uniforms[k]
 
 class GLWidget(QtOpenGL.QGLWidget):
     vertexShaderData = """
@@ -102,11 +125,11 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.parent = parent
         self.program = None
         self.times = collections.deque(maxlen=10)
-        self.uniforms = {'time': TimeUniform(),
-                         '_x': SmoothControlUniform('_z'),
-                         '_y': SmoothControlUniform('_z'),
-                         '_z': MapUniform(lambda x:1.4**x, SmoothControlUniform())
-                        }
+        self.uniforms = Uniforms()
+        self.uniforms['time'] = TimeUniform()
+        self.uniforms['_x'] = SmoothControlUniform(strength='_z')
+        self.uniforms['_y'] = SmoothControlUniform(strength='_z')
+        self.uniforms['_z'] = MapUniform(lambda x:1.4**x, SmoothControlUniform())
 
     def getFps(self):
         if len(self.times) > 1:
@@ -134,16 +157,12 @@ class GLWidget(QtOpenGL.QGLWidget):
             GL.glUniform1f(GL.glGetUniformLocation(self.program, name), value)
 
     def setUniforms(self):
-        for name, uni in self.uniforms.items():
-            self.setUniform(name, uni.value)
+        for name, value in self.uniforms.items():
+            self.setUniform(name, value)
 
     def tick(self):
-        gr = {name:uni.deps for name,uni in self.uniforms.items()}
-        for name in topsort(gr):
-            uni = self.uniforms[name]
-            deps = {dep:self.uniforms[dep].value for dep in uni.deps}
-            uni.update(deps)
-            self.setUniform(name, uni.value)
+        for name, value in self.uniforms.update():
+            self.setUniform(name, value)
         self.updateGL()
         self.times.append(time.time())
 
@@ -200,20 +219,19 @@ class MainWindow(QtGui.QMainWindow):
                         widget.show()
             else:
                 self.uniforms[name] = value
-                if name != 'time':
-                    label = QtGui.QLabel(name)
-                    edit = QtGui.QLineEdit(value)
-                    self.uniformWidgets[name] = [label, edit]
-                    def l(text, n=name):
-                        try:
-                            v = float(text)
-                            self.uniforms[n] = v
-                            self.glWidget.setUniform(n, v)
-                        except ValueError:
-                            pass
-                    edit.textChanged.connect(l)
-                    self.docklayout.addWidget(label)
-                    self.docklayout.addWidget(edit)
+                label = QtGui.QLabel(name)
+                edit = QtGui.QLineEdit(value)
+                self.uniformWidgets[name] = [label, edit]
+                def l(text, n=name):
+                    try:
+                        v = float(text)
+                        self.uniforms[n] = v
+                        self.glWidget.setUniform(n, v)
+                    except ValueError:
+                        pass
+                edit.textChanged.connect(l)
+                self.docklayout.addWidget(label)
+                self.docklayout.addWidget(edit)
         #self.docklayout.addStretch(1)
 
     def load(self):
@@ -256,43 +274,54 @@ class MainWindow(QtGui.QMainWindow):
         else:
             self.dock.show()
 
+    def toggleTime(self):
+        u = self.glWidget.uniforms
+        if isinstance(u['time'], PlainUniform):
+            u['time'] = TimeUniform(u['time'].value)
+        else:
+            u['time'] = PlainUniform(u['time'].value)
+        
+
     def keyPressEvent(self, e):
+        u = self.glWidget.uniforms
         if not e.isAutoRepeat():
             if e.key() == QtCore.Qt.Key_W:
-                self.glWidget.uniforms['_y'].speed += 1.
+                u['_y'].speed += 1.
             if e.key() == QtCore.Qt.Key_S:
-                self.glWidget.uniforms['_y'].speed -= 1.
+                u['_y'].speed -= 1.
             if e.key() == QtCore.Qt.Key_A:
-                self.glWidget.uniforms['_x'].speed -= 1.
+                u['_x'].speed -= 1.
             if e.key() == QtCore.Qt.Key_D:
-                self.glWidget.uniforms['_x'].speed += 1.
+                u['_x'].speed += 1.
             if e.key() == QtCore.Qt.Key_Period:
-                self.glWidget.uniforms['_z'].uni.speed += 1.
+                u['_z'].uni.speed += 1.
             if e.key() == QtCore.Qt.Key_Comma:
-                self.glWidget.uniforms['_z'].uni.speed -= 1.
+                u['_z'].uni.speed -= 1.
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
         if e.key() == QtCore.Qt.Key_P:
-            self.glWidget.uniforms['time'] = PlainUniform(self.glWidget.uniforms['time'].value)
+            self.toggleTime()
         if e.key() == QtCore.Qt.Key_F:
             self.toggleDock()
         if e.key() == QtCore.Qt.Key_C:
-            self.glWidget.origin()
+            u['_x'] = SmoothControlUniform(strength='_z')
+            u['_y'] = SmoothControlUniform(strength='_z')
 
     def keyReleaseEvent(self, e):
+        u = self.glWidget.uniforms
         if not e.isAutoRepeat():
             if e.key() == QtCore.Qt.Key_W:
-                self.glWidget.uniforms['_y'].speed -= 1.
+                u['_y'].speed -= 1.
             if e.key() == QtCore.Qt.Key_S:
-                self.glWidget.uniforms['_y'].speed += 1.
+                u['_y'].speed += 1.
             if e.key() == QtCore.Qt.Key_A:
-                self.glWidget.uniforms['_x'].speed += 1.
+                u['_x'].speed += 1.
             if e.key() == QtCore.Qt.Key_D:
-                self.glWidget.uniforms['_x'].speed -= 1.
+                u['_x'].speed -= 1.
             if e.key() == QtCore.Qt.Key_Period:
-                self.glWidget.uniforms['_z'].uni.speed -= 1.
+                u['_z'].uni.speed -= 1.
             if e.key() == QtCore.Qt.Key_Comma:
-                self.glWidget.uniforms['_z'].uni.speed += 1.
+                u['_z'].uni.speed += 1.
 
 def main():
     signal.signal(signal.SIGINT, signal.SIG_DFL)
