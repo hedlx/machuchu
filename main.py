@@ -350,9 +350,9 @@ class MainWindow(QtGui.QMainWindow):
             dx = self.mouse_pos[0] - mouseEvent.pos().x()
             dy = mouseEvent.pos().y() - self.mouse_pos[1]
             self.mouse_pos = (mouseEvent.pos().x(), mouseEvent.pos().y())
-            zoom = 1.1**self.glWidget.coord.z[0]
-            self.glWidget.coord.addPosn(x=(2./zoom)*float(dx)/float(self.glWidget.width()))
-            self.glWidget.coord.addPosn(y=(2./zoom)*float(dy)/float(self.glWidget.height()))
+            zoom = 2./(1.1**self.glWidget.coord.z[0])
+            self.glWidget.coord.addPosn(x=zoom*float(dx)/float(self.glWidget.height()))
+            self.glWidget.coord.addPosn(y=zoom*float(dy)/float(self.glWidget.height()))
 
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
