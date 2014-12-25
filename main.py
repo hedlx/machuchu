@@ -106,15 +106,27 @@ class GLWidget(QtOpenGL.QGLWidget):
 def lineEditUniform(name, value, setUniform):
     label = QtGui.QLabel(name)
     edit = QtGui.QLineEdit(value)
-    widgets = [label, edit]
     def l(text, n=name):
         try:
-            v = float(text)
-            setUniform(n, v)
+            setUniform(n, float(text))
         except ValueError:
             pass
     edit.textChanged.connect(l)
-    return widgets
+    return [label, edit]
+
+def sliderUniform(name, value, min, max, setUniform):
+    label = QtGui.QLabel(name)
+    slider = QtGui.QSlider()
+    slider.setValue(int(value))
+    slider.setMinimum(min)
+    slider.setMaximum(max)
+    def l(value, n=name):
+        try:
+            setUniform(n, float(value))
+        except ValueError:
+            pass
+    slider.valueChanged.connect(l)
+    return [label, slider]
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
@@ -169,7 +181,10 @@ class MainWindow(QtGui.QMainWindow):
                 self.uniforms[name] = value
                 widgets = []
                 if name != 'time':
-                    widgets = lineEditUniform(name, value, self.setUniform)
+                    if name.startswith("slider_"): ### TODO: better way to handle widget type
+                        widgets += sliderUniform(name, value, 1, 20, self.setUniform)
+                    else:
+                        widgets = lineEditUniform(name, value, self.setUniform)
                 self.uniformWidgets[name] = widgets
                 for widget in widgets:
                     self.docklayout.addWidget(widget)
