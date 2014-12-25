@@ -12,11 +12,35 @@ from updater import Updater
 ### global TODO: handle input (python code in shader comment, eval it),
 ###              advanced GUI generation (from comments)
 
+def reverse_gr(gr):
+    result = {}
+    for a in gr:
+        result.setdefault(a, [])
+        for b in gr[a]:
+            result.setdefault(b, [])
+            result[b].append(a)
+    return {k:set(v) for k,v in result.items()}
+
+def topsort(gr):
+    gr = {k:v.copy() for k,v in gr.items()}
+    rgr = reverse_gr(gr)
+    while len(gr) != 0:
+        l = list(filter(lambda node:len(gr[node])==0, gr))
+        if len(l) == 0:
+            raise ":<"
+        for node in l:
+            yield node
+            for rnode in rgr[node]:
+                gr[rnode].remove(node)
+            del rgr[node]
+            del gr[node]
+
 class PlainUniform:
     def __init__(self, value=0.):
         self.value = value
+        self.deps = []
 
-    def update(self): # TODO: update(self, deps)
+    def update(self, deps):
         pass
 
 class TimeUniform:
@@ -24,28 +48,33 @@ class TimeUniform:
             self._start = QtCore.QTime()
             self._start.start()
             self.value = 0.
+            self.deps = []
 
-        def update(self):
+        def update(self, deps):
             self.value = float(self._start.elapsed())
 
 class SmoothControlUniform:
-    def __init__(self, value=0., speed=0.):
+    def __init__(self, strength=None, value=0., speed=0.):
         self.value = value
         self._speed = speed
         self.speed = speed
+        self.deps = []
+        self.strength = strength
+        if(strength): self.deps.append(strength)
 
-    def update(self):
+    def update(self, deps):
         self._speed = (15*self._speed + self.speed)/16
-        self.value += self._speed/5
+        self.value += self._speed/deps.get(self.strength, 1.)/10.
 
 class MapUniform:
-    def __init__(self, uni, f):
+    def __init__(self, f, uni):
         self.uni = uni
         self.f = f
         self.value = self.f(self.uni.value)
+        self.deps = uni.deps
 
-    def update(self):
-        self.uni.update()
+    def update(self, deps):
+        self.uni.update(deps)
         self.value = self.f(self.uni.value)
 
 class GLWidget(QtOpenGL.QGLWidget):
@@ -74,9 +103,9 @@ class GLWidget(QtOpenGL.QGLWidget):
         self.program = None
         self.times = collections.deque(maxlen=10)
         self.uniforms = {'time': TimeUniform(),
-                         '_x': SmoothControlUniform(),
-                         '_y': SmoothControlUniform(),
-                         '_z': MapUniform(SmoothControlUniform(), lambda x:1.1**x)
+                         '_x': SmoothControlUniform('_z'),
+                         '_y': SmoothControlUniform('_z'),
+                         '_z': MapUniform(lambda x:1.4**x, SmoothControlUniform())
                         }
 
     def getFps(self):
@@ -109,8 +138,11 @@ class GLWidget(QtOpenGL.QGLWidget):
             self.setUniform(name, uni.value)
 
     def tick(self):
-        for name, uni in self.uniforms.items():
-            uni.update()
+        gr = {name:uni.deps for name,uni in self.uniforms.items()}
+        for name in topsort(gr):
+            uni = self.uniforms[name]
+            deps = {dep:self.uniforms[dep].value for dep in uni.deps}
+            uni.update(deps)
             self.setUniform(name, uni.value)
         self.updateGL()
         self.times.append(time.time())
@@ -153,11 +185,6 @@ class MainWindow(QtGui.QMainWindow):
         self.timer.setInterval(20)
         self.timer.timeout.connect(self.tick)
         self.timer.start()
-        self.time = QtCore.QTime()
-        self.uniforms['time'] = 0.
-        self.uniformWidgets['time'] = []
-        self.time.start()
-        self.timeron = True # FIXME
 
     def updateUniforms(self, data):
         r = re.compile(r'uniform\s+(\w+)\s+(\w+)(?:\s+=\s+([^;]+))?')
@@ -220,10 +247,6 @@ class MainWindow(QtGui.QMainWindow):
     def tick(self):
         if self.updater and self.updater.check():
             self.reload()
-        if self.timeron:
-            self.uniforms['time'] += float(self.time.elapsed())
-            self.glWidget.setUniform('time', self.uniforms['time'])
-        self.time.start()
         self.glWidget.tick()
         self.setWindowTitle(str(self.glWidget.getFps()))
 
@@ -250,7 +273,7 @@ class MainWindow(QtGui.QMainWindow):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
         if e.key() == QtCore.Qt.Key_P:
-            self.timeron = not self.timeron
+            self.glWidget.uniforms['time'] = PlainUniform(self.glWidget.uniforms['time'].value)
         if e.key() == QtCore.Qt.Key_F:
             self.toggleDock()
         if e.key() == QtCore.Qt.Key_C:
