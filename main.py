@@ -261,6 +261,10 @@ class MainWindow(QtGui.QMainWindow):
             self.toggleDock()
         if e.key() == QtCore.Qt.Key_C:
             self.glWidget.coord.origin()
+        if (e.modifiers() == QtCore.Qt.CTRL) and (e.key() == QtCore.Qt.Key_O):
+            self.load()
+
+
 
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat():
