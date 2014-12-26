@@ -1,7 +1,8 @@
 import posix
 import errno
 
-class Updater:
+
+class Updater(object):
     def __init__(self, files):
         self.files = {f: posix.stat(f).st_ctime for f in files}
 
