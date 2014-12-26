@@ -236,7 +236,7 @@ class MainWindow(QMainWindow):
         self.time.start()
         self.time_uniform = 0.
         self.timeron = True # FIXME
-        self.mouse_pos = (0, 0)
+        self.cursorLocPos = (0, 0)
 
     def updateUniforms(self, data, uniforms):
         for uni in self.uniforms.values():
@@ -360,15 +360,32 @@ class MainWindow(QMainWindow):
         if (e.delta() > 0): self.glWidget.coord.addSpeed(z=+0.8)
         if (e.delta() < 0): self.glWidget.coord.addSpeed(z=-0.8)
 
-    def mousePressEvent(self, mouseEvent):
-        if mouseEvent.button() == Qt.MidButton:
-            self.mouse_pos = (mouseEvent.pos().x(), mouseEvent.pos().y())
+    def warpCursor(self):
+        cursor = QCursor()
+        pos = cursor.pos()
+        if self.cursorLocPos[0] <= 0:
+            self.cursorLocPos = (self.width()-1+self.cursorLocPos[0], self.cursorLocPos[1])
+            cursor.setPos(pos.x()+self.cursorLocPos[0], pos.y())
+        elif self.cursorLocPos[0] >= self.width():
+            self.cursorLocPos = (1+self.cursorLocPos[0]-self.width(), self.cursorLocPos[1])
+            cursor.setPos(pos.x()-self.width()+self.cursorLocPos[0], pos.y())
+        elif self.cursorLocPos[1] <= 0:
+            self.cursorLocPos = (self.cursorLocPos[0], self.height()-1+self.cursorLocPos[1])
+            cursor.setPos(pos.x(), pos.y()+self.cursorLocPos[1])
+        elif self.cursorLocPos[1] >= self.height():
+            self.cursorLocPos = (self.cursorLocPos[0], 1+self.cursorLocPos[1]-self.height())
+            cursor.setPos(pos.x(), pos.y()-self.height()+self.cursorLocPos[1])
 
-    def mouseMoveEvent(self, mouseEvent):
-        if mouseEvent.buttons() == Qt.MidButton:
-            dx = self.mouse_pos[0] - mouseEvent.pos().x()
-            dy = mouseEvent.pos().y() - self.mouse_pos[1]
-            self.mouse_pos = (mouseEvent.pos().x(), mouseEvent.pos().y())
+    def mousePressEvent(self, e):
+        if e.button() == Qt.MidButton or e.button() == Qt.RightButton:
+            self.cursorLocPos = (e.pos().x(), e.pos().y())
+
+    def mouseMoveEvent(self, e):
+        if e.buttons() == Qt.MidButton or e.buttons() == Qt.RightButton:
+            dx = self.cursorLocPos[0] - e.pos().x()
+            dy = e.pos().y() - self.cursorLocPos[1]
+            self.cursorLocPos = (e.pos().x(), e.pos().y())
+            self.warpCursor()
             zoom = 2./(1.1**self.glWidget.coord.z[0])
             self.glWidget.coord.addPosn(x=zoom*float(dx)/float(self.glWidget.height()))
             self.glWidget.coord.addPosn(y=zoom*float(dy)/float(self.glWidget.height()))
