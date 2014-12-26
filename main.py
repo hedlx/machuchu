@@ -135,10 +135,10 @@ class GLWidget(QGLWidget):
         fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
         program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
         GL.glUseProgram(program)
+        self.program = program
         self.setUniform("_aspect", float(self.width()) / self.height())
         for name, value in self.coord.items():
             self.setUniform(name, value)
-        self.program = program
 
     def setUniform(self, name, value):
         if self.program is not None:
