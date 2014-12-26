@@ -34,11 +34,14 @@ class CoordUniform(object):
         if y: self.y = f(self.y, y)
         if z: self.z = f(self.z, z)
 
-    def addPosn(self, x, y):
+    def move(self, x, y):
         z = 2./(1.1**self.z[0])/self.height
         f = lambda v, d: (v[0]+d*z, v[1], v[2])
         self.x = f(self.x, x)
         self.y = f(self.y, y)
+
+    def zoom(self, z):
+        self.z = (self.z[0]+z, self.z[1], self.z[2])
 
     def update(self):
         f = lambda v, s: (v[0]+v[1]/s, (v[1]*15 + v[2])/16, v[2])
@@ -353,9 +356,11 @@ class MainWindow(QMainWindow):
                 self.glWidget.coord.add(z=+1)
 
     def wheelEvent(self, e):
-        # TODO: ctrl to zoom
         d = e.angleDelta()
-        self.glWidget.coord.addPosn(x=-d.x(), y=d.y())
+        if QApplication.keyboardModifiers() & Qt.ControlModifier:
+            self.glWidget.coord.zoom(d.y()/100)
+        else:
+            self.glWidget.coord.move(x=-d.x(), y=d.y())
 
     def warpCursor(self):
         cursor = QCursor()
@@ -375,7 +380,7 @@ class MainWindow(QMainWindow):
             d = self.cursorLocPos - e.pos()
             self.cursorLocPos = e.pos()
             self.warpCursor()
-            self.glWidget.coord.addPosn(d.x(), -d.y())
+            self.glWidget.coord.move(d.x(), -d.y())
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 app = QApplication(sys.argv)
