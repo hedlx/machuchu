@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-import sys, re, traceback, signal, time, collections, atexit, os
+import sys, re, signal, time, collections
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -15,8 +15,9 @@ import OpenGL.GL.shaders
 from preprocessor import preprocess
 from updater import Updater
 
-### global TODO: handle input (python code in shader comment, eval it),
-###              advanced GUI generation (from comments)
+# global TODO: handle input (python code in shader comment, eval it),
+#              advanced GUI generation (from comments)
+
 
 class CoordUniform:
     def __init__(self):
@@ -56,6 +57,7 @@ class CoordUniform:
         yield "_y", self.y[0]
         yield "_z", 1.1**self.z[0]
 
+
 class GLWidget(QGLWidget):
     vertexShaderData = """
         #version 120
@@ -84,7 +86,8 @@ class GLWidget(QGLWidget):
         self.coord = CoordUniform()
 
     def initializeGL(self):
-        self.vertexShader = GL.shaders.compileShader(self.vertexShaderData, GL.GL_VERTEX_SHADER)
+        self.vertexShader = GL.shaders.compileShader(self.vertexShaderData,
+                                                     GL.GL_VERTEX_SHADER)
 
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
@@ -104,11 +107,12 @@ class GLWidget(QGLWidget):
     def getUniforms(self):
         result = {}
         count = GL.glGetProgramiv(self.program, GL.GL_ACTIVE_UNIFORMS)
-        for i  in range(count):
+        for i in range(count):
             name, size, type_ = GL.glGetActiveUniform(self.program, i)
             loc = GL.glGetUniformLocation(self.program, name)
             name = name.decode()
-            if name[0] == '_': continue # FIXME: ignore uniforms from vertexShaderData
+            if name[0] == '_':  # FIXME: ignore uniforms from vertexShaderData
+                continue
             if size == 1 and type_ == GL.GL_INT:
                 arr = OpenGL.arrays.GLintArray.zeros(1)
                 GL.glGetUniformiv(self.program, loc, arr)
@@ -120,7 +124,8 @@ class GLWidget(QGLWidget):
         return result
 
     def setFragmentShader(self, shader):
-        fragmentShader = GL.shaders.compileShader(shader, GL.GL_FRAGMENT_SHADER)
+        fragmentShader = GL.shaders.compileShader(shader,
+                                                  GL.GL_FRAGMENT_SHADER)
         program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
         GL.glUseProgram(program)
         self.program = program
@@ -140,6 +145,7 @@ class GLWidget(QGLWidget):
             self.setUniform(name, value)
         self.updateGL()
         self.times.append(time.time())
+
 
 class UniformBase(object):
     def __init__(self, parent, name, value):
@@ -161,11 +167,13 @@ class UniformBase(object):
     def delete(self):
         for w in self.widgets: w.setParent(None)
 
+
 class LineEditUniform(UniformBase):
     def __init__(self, parent, name, value):
         super(LineEditUniform, self).__init__(parent, name, value)
         label = QLabel(name)
         edit = QLineEdit(str(value))
+
         def l(text):
             try: self.value = float(text)
             except ValueError: return
@@ -175,6 +183,7 @@ class LineEditUniform(UniformBase):
 
     def update(self):
         self.parent.glWidget.setUniform(self.name, self.value)
+
 
 class SliderUniform(UniformBase):
     def __init__(self, parent, name, value, min, max):
@@ -193,6 +202,7 @@ class SliderUniform(UniformBase):
         self.slider.setMinimum(min)
         self.slider.setMaximum(max)
         self.parent.glWidget.setUniform(self.name, self.value)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -223,7 +233,7 @@ class MainWindow(QMainWindow):
         self.time = QTime()
         self.time.start()
         self.time_uniform = 0.
-        self.timeron = True # FIXME
+        self.timeron = True  # FIXME
         self.cursorLocPos = (0, 0)
 
     def updateUniforms(self, data, uniforms):
@@ -232,18 +242,20 @@ class MainWindow(QMainWindow):
         unpragmed = set(uniforms)
         r = re.compile(r'^\s*#\s*pragma\s+machachu\s+(.*)$', re.M)
         for params in r.findall(data):
-            params = re.split("\s+", params)
+            params = re.split(r"\s+", params)
             if len(params) == 4 and params[0] == 'slider':
                 name = params[1]
                 value = uniforms[name]
-                min,max = map(int, params[2:4])
+                min, max = map(int, params[2:4])
                 old = self.uniforms.get(name, None)
                 if isinstance(old, SliderUniform):
                     old.update(min, max)
                     old.show()
                 else:
-                    if old != None: old.delete()
-                    self.uniforms[name] = SliderUniform(self, name, value, min, max)
+                    if old is not None:
+                        old.delete()
+                    self.uniforms[name] = SliderUniform(self, name, value,
+                                                        min, max)
                 unpragmed.remove(name)
 
         for name in unpragmed:
@@ -254,13 +266,15 @@ class MainWindow(QMainWindow):
                 old.update()
                 old.show()
             else:
-                if old != None: old.delete()
+                if old is not None:
+                    old.delete()
                 self.uniforms[name] = LineEditUniform(self, name, value)
 
     def load(self):
-        filename = QFileDialog.getOpenFileName(self, filter="Fragment shader (*.f)")[0]
-        if filename != '':
-            self.loadFile(filename)
+        filename = QFileDialog.getOpenFileName(self,
+                                               filter="Fragment shader (*.f)")
+        if filename[0] != '':
+            self.loadFile(filename[0])
 
     def reload(self):
         if self.filename:
@@ -278,7 +292,7 @@ class MainWindow(QMainWindow):
             text = str(e)
 
             if type(e) == RuntimeError and len(e.args) == 3 and \
-                e.args[2] == GL.GL_FRAGMENT_SHADER:
+               e.args[2] == GL.GL_FRAGMENT_SHADER:
                 text = e.args[0]
 
             mb = QMessageBox(QMessageBox.Warning, "Error loading shader",
@@ -325,7 +339,6 @@ class MainWindow(QMainWindow):
             self.glWidget.coord.origin()
         if (e.modifiers() == Qt.CTRL) and (e.key() == Qt.Key_O):
             self.load()
-
 
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat():
