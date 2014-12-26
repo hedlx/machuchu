@@ -2,13 +2,30 @@
 
 # vim: sw=4 ts=4 sts=4 et:
 
+from __future__ import print_function
+
 import sys, re, traceback, signal, time, collections, atexit, os
-from PySide import QtCore, QtGui, QtOpenGL
 from OpenGL import GL
 import OpenGL.arrays
 import OpenGL.GL.shaders
 from preprocessor import preprocess
 from updater import Updater
+
+def try_imports(module, submodules, locals=locals()):
+    try:
+        for submodule in submodules:
+            exec("from %s.%s import *" % (module, submodule), globals())
+        return True
+    except ImportError:
+        return False
+
+def import_qt(binding):
+    qt_bindings = {'PyQt5': ['QtCore', 'QtWidgets', 'QtGui', 'QtOpenGL'],
+                   'PySide': ['QtCore', 'QtGui', 'QtOpenGL'],
+                   'PyQt4': ['QtCore', 'QtGui', 'QtOpenGL']}
+    return try_imports(binding, qt_bindings[binding])
+
+import_qt('PyQt5')
 
 ### global TODO: handle input (python code in shader comment, eval it),
 ###              advanced GUI generation (from comments)
@@ -51,7 +68,7 @@ class CoordUniform:
         yield "_y", self.y[0]
         yield "_z", 1.1**self.z[0]
 
-class GLWidget(QtOpenGL.QGLWidget):
+class GLWidget(QGLWidget):
     vertexShaderData = """
         #version 120
 
@@ -159,8 +176,8 @@ class UniformBase(object):
 class LineEditUniform(UniformBase):
     def __init__(self, parent, name, value):
         super(LineEditUniform, self).__init__(parent, name, value)
-        label = QtGui.QLabel(name)
-        edit = QtGui.QLineEdit(str(value))
+        label = QLabel(name)
+        edit = QLineEdit(str(value))
         def l(text):
             try: self.value = float(text)
             except ValueError: return
@@ -174,11 +191,11 @@ class LineEditUniform(UniformBase):
 class SliderUniform(UniformBase):
     def __init__(self, parent, name, value, min, max):
         super(SliderUniform, self).__init__(parent, name, value)
-        self.slider = QtGui.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.slider = QSlider(Qt.Horizontal)
         self.slider.setValue(value)
         self.update(min, max)
         self.slider.valueChanged.connect(lambda x: self.setValue(x))
-        self.init_widgets([QtGui.QLabel(name), self.slider])
+        self.init_widgets([QLabel(name), self.slider])
 
     def setValue(self, value):
         self.value = value
@@ -189,18 +206,18 @@ class SliderUniform(UniformBase):
         self.slider.setMaximum(max)
         self.parent.glWidget.setUniform(self.name, self.value)
 
-class MainWindow(QtGui.QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.resize(800, 600)
         self.setWindowTitle('PyGL')
         self.glWidget = GLWidget(self)
         self.setCentralWidget(self.glWidget)
-        self.dock = QtGui.QDockWidget()
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock)
-        widget = QtGui.QWidget()
-        self.docklayout = QtGui.QVBoxLayout()
-        loadButton = QtGui.QPushButton("Load", shortcut=QtCore.Qt.CTRL + QtCore.Qt.Key_O)
+        self.dock = QDockWidget()
+        self.addDockWidget(Qt.RightDockWidgetArea, self.dock)
+        widget = QWidget()
+        self.docklayout = QVBoxLayout()
+        loadButton = QPushButton("Load", shortcut=Qt.CTRL + Qt.Key_O)
         loadButton.clicked.connect(self.load)
         self.docklayout.addWidget(loadButton)
         widget.setLayout(self.docklayout)
@@ -211,11 +228,11 @@ class MainWindow(QtGui.QMainWindow):
         self.filename = None
         self.updater = None
 
-        self.timer = QtCore.QTimer(self)
+        self.timer = QTimer(self)
         self.timer.setInterval(20)
         self.timer.timeout.connect(self.tick)
         self.timer.start()
-        self.time = QtCore.QTime()
+        self.time = QTime()
         self.time.start()
         self.time_uniform = 0.
         self.timeron = True # FIXME
@@ -253,9 +270,11 @@ class MainWindow(QtGui.QMainWindow):
                 self.uniforms[name] = LineEditUniform(self, name, value)
 
     def load(self):
-        filename = QtGui.QFileDialog.getOpenFileName(self, filter="Fragment shader (*.f)")
-        if filename[0] != '':
-            self.loadFile(filename[0])
+        filename = QFileDialog.getOpenFileName(self, filter="Fragment shader (*.f)")
+        if isinstance(filename, tuple): # PySide workaround
+            filename = filename[0]
+        if filename != '':
+            self.loadFile(filename)
 
     def reload(self):
         if self.filename:
@@ -276,8 +295,8 @@ class MainWindow(QtGui.QMainWindow):
                 e.args[2] == GL.GL_FRAGMENT_SHADER:
                 text = e.args[0]
 
-            mb = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Error loading shader",
-                                   text, QtGui.QMessageBox.Ok)
+            mb = QMessageBox(QMessageBox.Warning, "Error loading shader",
+                             text, QMessageBox.Ok)
             mb.exec_()
 
     def tick(self):
@@ -298,43 +317,43 @@ class MainWindow(QtGui.QMainWindow):
 
     def keyPressEvent(self, e):
         if not e.isAutoRepeat():
-            if e.key() == QtCore.Qt.Key_W:
+            if e.key() == Qt.Key_W:
                 self.glWidget.coord.add(y=+1)
-            if e.key() == QtCore.Qt.Key_S:
+            if e.key() == Qt.Key_S:
                 self.glWidget.coord.add(y=-1)
-            if e.key() == QtCore.Qt.Key_A:
+            if e.key() == Qt.Key_A:
                 self.glWidget.coord.add(x=-1)
-            if e.key() == QtCore.Qt.Key_D:
+            if e.key() == Qt.Key_D:
                 self.glWidget.coord.add(x=+1)
-            if e.key() == QtCore.Qt.Key_Period:
+            if e.key() == Qt.Key_Period:
                 self.glWidget.coord.add(z=+1)
-            if e.key() == QtCore.Qt.Key_Comma:
+            if e.key() == Qt.Key_Comma:
                 self.glWidget.coord.add(z=-1)
-        if e.key() == QtCore.Qt.Key_Escape:
+        if e.key() == Qt.Key_Escape:
             self.close()
-        if e.key() == QtCore.Qt.Key_P:
+        if e.key() == Qt.Key_P:
             self.timeron = not self.timeron
-        if e.key() == QtCore.Qt.Key_F:
+        if e.key() == Qt.Key_F:
             self.toggleDock()
-        if e.key() == QtCore.Qt.Key_C:
+        if e.key() == Qt.Key_C:
             self.glWidget.coord.origin()
-        if (e.modifiers() == QtCore.Qt.CTRL) and (e.key() == QtCore.Qt.Key_O):
+        if (e.modifiers() == Qt.CTRL) and (e.key() == Qt.Key_O):
             self.load()
 
 
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat():
-            if e.key() == QtCore.Qt.Key_W:
+            if e.key() == Qt.Key_W:
                 self.glWidget.coord.add(y=-1)
-            if e.key() == QtCore.Qt.Key_S:
+            if e.key() == Qt.Key_S:
                 self.glWidget.coord.add(y=+1)
-            if e.key() == QtCore.Qt.Key_A:
+            if e.key() == Qt.Key_A:
                 self.glWidget.coord.add(x=+1)
-            if e.key() == QtCore.Qt.Key_D:
+            if e.key() == Qt.Key_D:
                 self.glWidget.coord.add(x=-1)
-            if e.key() == QtCore.Qt.Key_Period:
+            if e.key() == Qt.Key_Period:
                 self.glWidget.coord.add(z=-1)
-            if e.key() == QtCore.Qt.Key_Comma:
+            if e.key() == Qt.Key_Comma:
                 self.glWidget.coord.add(z=+1)
 
     def wheelEvent(self, e):
@@ -342,11 +361,11 @@ class MainWindow(QtGui.QMainWindow):
         if (e.delta() < 0): self.glWidget.coord.addSpeed(z=-0.8)
 
     def mousePressEvent(self, mouseEvent):
-        if mouseEvent.button() == QtCore.Qt.MouseButton.MidButton:
+        if mouseEvent.button() == Qt.MidButton:
             self.mouse_pos = (mouseEvent.pos().x(), mouseEvent.pos().y())
 
     def mouseMoveEvent(self, mouseEvent):
-        if mouseEvent.buttons() == QtCore.Qt.MouseButton.MidButton:
+        if mouseEvent.buttons() == Qt.MidButton:
             dx = self.mouse_pos[0] - mouseEvent.pos().x()
             dy = mouseEvent.pos().y() - self.mouse_pos[1]
             self.mouse_pos = (mouseEvent.pos().x(), mouseEvent.pos().y())
@@ -356,9 +375,9 @@ class MainWindow(QtGui.QMainWindow):
 
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-app = QtGui.QApplication(sys.argv)
+app = QApplication(sys.argv)
 win = MainWindow()
 win.show()
-if len(QtGui.QApplication.arguments()) > 1:
-    win.loadFile(QtGui.QApplication.arguments()[1])
+if len(QApplication.arguments()) > 1:
+    win.loadFile(QApplication.arguments()[1])
 sys.exit(app.exec_())
