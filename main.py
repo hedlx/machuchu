@@ -5,27 +5,15 @@
 from __future__ import print_function
 
 import sys, re, traceback, signal, time, collections, atexit, os
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtOpenGL import *
 from OpenGL import GL
 import OpenGL.arrays
 import OpenGL.GL.shaders
 from preprocessor import preprocess
 from updater import Updater
-
-def try_imports(module, submodules, locals=locals()):
-    try:
-        for submodule in submodules:
-            exec("from %s.%s import *" % (module, submodule), globals())
-        return True
-    except ImportError:
-        return False
-
-def import_qt(binding):
-    qt_bindings = {'PyQt5': ['QtCore', 'QtWidgets', 'QtGui', 'QtOpenGL'],
-                   'PySide': ['QtCore', 'QtGui', 'QtOpenGL'],
-                   'PyQt4': ['QtCore', 'QtGui', 'QtOpenGL']}
-    return try_imports(binding, qt_bindings[binding])
-
-import_qt('PyQt5')
 
 ### global TODO: handle input (python code in shader comment, eval it),
 ###              advanced GUI generation (from comments)
@@ -270,9 +258,7 @@ class MainWindow(QMainWindow):
                 self.uniforms[name] = LineEditUniform(self, name, value)
 
     def load(self):
-        filename = QFileDialog.getOpenFileName(self, filter="Fragment shader (*.f)")
-        if isinstance(filename, tuple): # PySide workaround
-            filename = filename[0]
+        filename = QFileDialog.getOpenFileName(self, filter="Fragment shader (*.f)")[0]
         if filename != '':
             self.loadFile(filename)
 
@@ -357,8 +343,9 @@ class MainWindow(QMainWindow):
                 self.glWidget.coord.add(z=+1)
 
     def wheelEvent(self, e):
-        if (e.delta() > 0): self.glWidget.coord.addSpeed(z=+0.8)
-        if (e.delta() < 0): self.glWidget.coord.addSpeed(z=-0.8)
+        # TODO: ctrl to zoom
+        d = e.angleDelta()
+        self.glWidget.coord.update(dx=-d.x()/1000., dy=d.y()/1000.)
 
     def warpCursor(self):
         cursor = QCursor()
