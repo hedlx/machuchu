@@ -2,10 +2,16 @@
 
 varying vec4 p;
 uniform float time;
-uniform int param1 = 6;
-uniform int param2 = 7;
-#pragma machachu slider param1 2 10
-#pragma machachu slider param2 2 10
+
+uniform int rank1 = 6, rank2 = 7;
+uniform int rotate_speed1 = 10, rotate_speed2 = -5;
+uniform int zoom_speed1 = 0, zoom_speed2 = 0;
+#pragma machachu slider rank1 2 10
+#pragma machachu slider rank2 2 10
+#pragma machachu slider rotate_speed1 -100 100
+#pragma machachu slider rotate_speed2 -100 100
+#pragma machachu slider zoom_speed1 -100 100
+#pragma machachu slider zoom_speed2 -100 100
 
 #include "lib.h"
 
@@ -36,34 +42,40 @@ void add(vec2 pos, vec3 color, vec2 center)
     }
 }
 
-void endless(int rank, float scale, float sat, float speed, vec2 center)
+int div_up(int a, int b) {
+        return a/b + (a%b>0?1:0);
+}
+
+void endless(int rank, float ring_dist, float zoom, float rotation, vec2 center, float sat)
 {
     if(rank <= 2) return;
-    if(scale == 0)
-        scale = (1 + sin(PI/rank)) / cos(PI/rank);
+    if(ring_dist == 0)
+        ring_dist = (1 + sin(PI/rank)) / cos(PI/rank);
+    zoom *= rank;
     vec2 p = p.xy - center;
 
-    int center_ring = int(floor( log(sqr(p.x)+sqr(p.y))/2/log(scale)) );
-    float base_shift = time/speed;
-    float alpha = (atan(p.y, p.x)/TAU - base_shift)*rank;
+    int center_ring = int(floor( log(sqr(p.x)+sqr(p.y))/2/log(ring_dist) - zoom));
+    float alpha = (atan(p.y, p.x)/TAU - rotation)*rank;
     float alpha1 = floor(alpha+0.5) / rank;
     float alpha2 = floor(alpha) / rank;
 
     debug_rings += center_ring;
     for(int ring = center_ring-1; ring <= center_ring+1; ring++) {
       float shift = (ring%2==0?0:1)/2.0/rank;
-      float color_shift = -3*(ring+1000)/2/float(rank);
+      float color_shift = div_up(-3*ring, 2)/float(rank);
       float d = ring%2 == 0? alpha1 : alpha2;
-      float t = (base_shift + shift + d)*TAU;
-      vec2 pos = pow(scale, ring) * vec2(cos(t), sin(t)) + center;
+      float t = (rotation + shift + d)*TAU;
+      vec2 pos = pow(ring_dist, ring+zoom) * vec2(cos(t), sin(t)) + center;
       add(pos, hsv2rgb(d+color_shift,sat, 1), center);
     }
 }
 
 void main()
 {
-    endless(param1, 0, 1.0, 100000, vec2(0));
-    endless(param2, 0, 0.5,  10000, vec2(0));
+    float rot = time/1000000.;
+    float zoom = time/100000.;
+    endless(rank1, 0, zoom*zoom_speed1, rot*rotate_speed1, vec2(0), 1.0);
+    endless(rank2, 0, zoom*zoom_speed2, rot*rotate_speed2, vec2(0), 0.5);
     #ifdef DEBUG_RINGS
     debug_rings = mod(1000+debug_rings, DEBUG_RINGS)/2/DEBUG_RINGS + 0.5;
     #else
