@@ -2,7 +2,7 @@
 
 # vim: sw=4 ts=4 sts=4 et:
 
-from __future__ import print_function
+from __future__ import print_function, division
 
 import sys, re, signal, time, collections
 from PyQt5.QtCore import *
@@ -19,9 +19,10 @@ from updater import Updater
 #              advanced GUI generation (from comments)
 
 
-class CoordUniform:
+class CoordUniform(object):
     def __init__(self):
         self.x = self.y = self.z = (0., 0., 0.)
+        self.height = 1
 
     def origin(self):
         self.x = (0.0, 0.0, self.x[2])
@@ -33,17 +34,11 @@ class CoordUniform:
         if y: self.y = f(self.y, y)
         if z: self.z = f(self.z, z)
 
-    def addSpeed(self, x=0., y=0., z=0.):
-        f = lambda v, d: (v[0], v[1]+d, v[2])
-        if x: self.x = f(self.x, x)
-        if y: self.y = f(self.y, y)
-        if z: self.z = f(self.z, z)
-
-    def addPosn(self, x=0., y=0., z=0.):
-        f = lambda v, d: (v[0]+d, v[1], v[2])
-        if x: self.x = f(self.x, x)
-        if y: self.y = f(self.y, y)
-        if z: self.z = f(self.z, z)
+    def addPosn(self, x, y):
+        z = 2./(1.1**self.z[0])/self.height
+        f = lambda v, d: (v[0]+d*z, v[1], v[2])
+        self.x = f(self.x, x)
+        self.y = f(self.y, y)
 
     def update(self):
         f = lambda v, s: (v[0]+v[1]/s, (v[1]*15 + v[2])/16, v[2])
@@ -91,7 +86,8 @@ class GLWidget(QGLWidget):
 
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
-        self.setUniform("_aspect", float(width) / height)
+        self.coord.height = height
+        self.setUniform("_aspect", width / height)
 
     def paintGL(self):
         GL.glBegin(GL.GL_TRIANGLE_STRIP)
@@ -129,7 +125,8 @@ class GLWidget(QGLWidget):
         program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
         GL.glUseProgram(program)
         self.program = program
-        self.setUniform("_aspect", float(self.width()) / self.height())
+        self.coord.height = self.height()
+        self.setUniform("_aspect", self.width() / self.height())
         for name, value in self.coord.items():
             self.setUniform(name, value)
 
@@ -234,12 +231,13 @@ class MainWindow(QMainWindow):
         self.time.start()
         self.time_uniform = 0.
         self.timeron = True  # FIXME
-        self.cursorLocPos = (0, 0)
+        self.cursorLocPos = QPoint(0, 0)
 
     def updateUniforms(self, data, uniforms):
         for uni in self.uniforms.values():
             uni.hide()
         unpragmed = set(uniforms)
+        unpragmed.discard('time')
         r = re.compile(r'^\s*#\s*pragma\s+machachu\s+(.*)$', re.M)
         for params in r.findall(data):
             params = re.split(r"\s+", params)
@@ -259,7 +257,6 @@ class MainWindow(QMainWindow):
                 unpragmed.remove(name)
 
         for name in unpragmed:
-            if name == 'time': continue
             value = uniforms[name]
             old = self.uniforms.get(name, None)
             if isinstance(old, LineEditUniform):
@@ -358,38 +355,27 @@ class MainWindow(QMainWindow):
     def wheelEvent(self, e):
         # TODO: ctrl to zoom
         d = e.angleDelta()
-        self.glWidget.coord.update(dx=-d.x()/1000., dy=d.y()/1000.)
+        self.glWidget.coord.addPosn(x=-d.x(), y=d.y())
 
     def warpCursor(self):
         cursor = QCursor()
-        pos = cursor.pos()
-        if self.cursorLocPos[0] <= 0:
-            self.cursorLocPos = (self.width()-1+self.cursorLocPos[0], self.cursorLocPos[1])
-            cursor.setPos(pos.x()+self.cursorLocPos[0], pos.y())
-        elif self.cursorLocPos[0] >= self.width():
-            self.cursorLocPos = (1+self.cursorLocPos[0]-self.width(), self.cursorLocPos[1])
-            cursor.setPos(pos.x()-self.width()+self.cursorLocPos[0], pos.y())
-        elif self.cursorLocPos[1] <= 0:
-            self.cursorLocPos = (self.cursorLocPos[0], self.height()-1+self.cursorLocPos[1])
-            cursor.setPos(pos.x(), pos.y()+self.cursorLocPos[1])
-        elif self.cursorLocPos[1] >= self.height():
-            self.cursorLocPos = (self.cursorLocPos[0], 1+self.cursorLocPos[1]-self.height())
-            cursor.setPos(pos.x(), pos.y()-self.height()+self.cursorLocPos[1])
+        wrap = lambda value, max: (value-1) % (max-2)+1
+        newCursorLocPos = QPoint(wrap(self.cursorLocPos.x(), self.width()),
+                                 wrap(self.cursorLocPos.y(), self.height()))
+        if newCursorLocPos != self.cursorLocPos:
+            cursor.setPos(cursor.pos() + newCursorLocPos - self.cursorLocPos)
+            self.cursorLocPos = newCursorLocPos
 
     def mousePressEvent(self, e):
         if e.button() == Qt.MidButton or e.button() == Qt.RightButton:
-            self.cursorLocPos = (e.pos().x(), e.pos().y())
+            self.cursorLocPos = e.pos()
 
     def mouseMoveEvent(self, e):
         if e.buttons() == Qt.MidButton or e.buttons() == Qt.RightButton:
-            dx = self.cursorLocPos[0] - e.pos().x()
-            dy = e.pos().y() - self.cursorLocPos[1]
-            self.cursorLocPos = (e.pos().x(), e.pos().y())
+            d = self.cursorLocPos - e.pos()
+            self.cursorLocPos = e.pos()
             self.warpCursor()
-            zoom = 2./(1.1**self.glWidget.coord.z[0])
-            self.glWidget.coord.addPosn(x=zoom*float(dx)/float(self.glWidget.height()))
-            self.glWidget.coord.addPosn(y=zoom*float(dy)/float(self.glWidget.height()))
-
+            self.glWidget.coord.addPosn(d.x(), -d.y())
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 app = QApplication(sys.argv)
