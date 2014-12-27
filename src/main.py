@@ -18,6 +18,15 @@ from updater import Updater
 # global TODO: handle input (python code in shader comment, eval it),
 #              advanced GUI generation (from comments)
 
+class GentleLineEdit(QLineEdit):
+    def __init__(self, label="", parent=None):
+        super(QLineEdit, self).__init__(label, parent)
+        self.editingFinished.connect(self.clearFocus)
+        self.editingFinished.connect(self.releaseKeyboard)
+
+    def mouseReleaseEvent(self, e):
+        self.grabKeyboard()
+
 
 class CoordUniform(object):
     def __init__(self):
@@ -183,7 +192,7 @@ class LineEditUniform(UniformBase):
     def __init__(self, parent, name, value):
         super(LineEditUniform, self).__init__(parent, name, value)
         label = QLabel(name)
-        edit = QLineEdit(str(value))
+        edit = GentleLineEdit(str(value))
 
         def l(text):
             try: self.value = float(text)
@@ -288,20 +297,19 @@ class MainWindow(QMainWindow):
         widget.setLayout(renderLayout)
         renderDock.setWidget(widget)
 
-        renderButton = QPushButton("Render")
-        renderLayout.addWidget(renderButton)
-
         wCoord = QWidget()
         lCoord = QHBoxLayout()
         wCoord.setLayout(lCoord)
+        lCoord.setContentsMargins(0,0,0,0)
 
         renderLayout.addWidget(wCoord)
 
         wPos = QWidget()
         lPos = QVBoxLayout()
         wPos.setLayout(lPos)
-        posX = QLineEdit()
-        posY = QLineEdit()
+        lPos.setContentsMargins(0,0,0,0)
+        posX = GentleLineEdit()
+        posY = GentleLineEdit()
         lPos.addWidget(QLabel("Position"))
         lPos.addWidget(posX)
         lPos.addWidget(posY)
@@ -311,8 +319,9 @@ class MainWindow(QMainWindow):
         wSize = QWidget()
         lSize = QVBoxLayout()
         wSize.setLayout(lSize)
-        sizeX = QLineEdit()
-        sizeY = QLineEdit()
+        lSize.setContentsMargins(0,0,0,0)
+        sizeX = GentleLineEdit()
+        sizeY = GentleLineEdit()
         lSize.addWidget(QLabel("Size"))
         lSize.addWidget(sizeX)
         lSize.addWidget(sizeY)
@@ -322,15 +331,18 @@ class MainWindow(QMainWindow):
         wFPS = QWidget()
         lFPS = QHBoxLayout()
         wFPS.setLayout(lFPS)
+        lFPS.setContentsMargins(0,0,0,0)
         lFPS.addWidget(QLabel("FPS"))
-        fps = QLineEdit()
+        fps = GentleLineEdit()
         lFPS.addWidget(fps)
 
         renderLayout.addWidget(wFPS)
 
-        renderLayout.addWidget(QLabel("Output directory"))
-        path = QLineEdit()
-        renderLayout.addWidget(path)
+        saveButton = QPushButton("Set output directory...")
+        renderLayout.addWidget(saveButton)
+
+        renderButton = QPushButton("Render")
+        renderLayout.addWidget(renderButton)
 
         renderLayout.addStretch(0)
         renderDock.hide()
@@ -454,7 +466,7 @@ class MainWindow(QMainWindow):
             self.load()
 
     def keyReleaseEvent(self, e):
-        if not e.isAutoRepeat():
+        if not e.isAutoRepeat() and not self.keyboardGrabber():
             if e.key() == Qt.Key_W:
                 self.glWidget.coord.add(y=-1)
             if e.key() == Qt.Key_S:
@@ -487,6 +499,10 @@ class MainWindow(QMainWindow):
     def mousePressEvent(self, e):
         if e.button() == Qt.MidButton or e.button() == Qt.RightButton:
             self.cursorLocPos = e.pos()
+        grabber = self.keyboardGrabber()
+        if grabber:
+            grabber.releaseKeyboard()
+            grabber.clearFocus()
 
     def mouseMoveEvent(self, e):
         if e.buttons() == Qt.MidButton or e.buttons() == Qt.RightButton:
