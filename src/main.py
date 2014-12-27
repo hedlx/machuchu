@@ -104,7 +104,8 @@ class GLWidget(QGLWidget):
         return len(self.times) / (self.times[-1] - self.times[0])
 
     def getUniforms(self):
-        result = {}
+        uniforms = {}
+        types = {}
         count = GL.glGetProgramiv(self.program, GL.GL_ACTIVE_UNIFORMS)
         for i in range(count):
             name, size, type_ = GL.glGetActiveUniform(self.program, i)
@@ -115,12 +116,17 @@ class GLWidget(QGLWidget):
             if size == 1 and type_ == GL.GL_INT:
                 arr = OpenGL.arrays.GLintArray.zeros(1)
                 GL.glGetUniformiv(self.program, loc, arr)
-                result[name] = arr[0]
+                uniforms[name] = arr[0]
             if size == 1 and type_ == GL.GL_FLOAT:
                 arr = OpenGL.arrays.GLfloatArray.zeros(1)
                 GL.glGetUniformfv(self.program, loc, arr)
-                result[name] = arr[0]
-        return result
+                uniforms[name] = arr[0]
+            if size == 1 and type_ == GL.GL_BOOL:
+                arr = OpenGL.arrays.GLintArray.zeros(1)
+                GL.glGetUniformiv(self.program, loc, arr)
+                uniforms[name] = arr[0]
+            types[name] = type_
+        return uniforms, types
 
     def setFragmentShader(self, shader):
         fragmentShader = GL.shaders.compileShader(shader,
@@ -207,7 +213,7 @@ class CheckBoxUniform(UniformBase):
     def __init__(self, parent, name, value):
         super(CheckBoxUniform, self).__init__(parent, name, value)
         self.checkbox = QCheckBox()
-        self.checkbox.setCheckState(Qt.Unckecked if value == 0 else Qt.Checked)
+        self.checkbox.setCheckState(Qt.Unchecked if value == 0 else Qt.Checked)
         self.checkbox.stateChanged.connect(lambda x: self.setValue(x))
         self.init_widgets([self.checkbox, QLabel(name)])
 
@@ -261,7 +267,7 @@ class MainWindow(QMainWindow):
         self.timeron = True  # FIXME
         self.cursorLocPos = QPoint(0, 0)
 
-    def updateUniforms(self, data, uniforms):
+    def updateUniforms(self, data, uniforms, types):
         for uni in self.uniforms.values():
             uni.hide()
         unpragmed = set(uniforms)
@@ -283,29 +289,20 @@ class MainWindow(QMainWindow):
                     self.uniforms[name] = SliderUniform(self, name, value,
                                                         min, max)
                 unpragmed.remove(name)
-            if len(params) == 2 and params[0] == 'checkbox':
-                name = params[1]
-                value = uniforms[name]
-                old = self.uniforms.get(name, None)
-                if isinstance(old, CheckBoxUniform):
-                    old.update()
-                    old.show()
-                else:
-                    if old is not None:
-                        old.delete()
-                    self.uniforms[name] = CheckBoxUniform(self, name, value)
-                unpragmed.remove(name)
 
         for name in unpragmed:
             value = uniforms[name]
             old = self.uniforms.get(name, None)
-            if isinstance(old, LineEditUniform):
+            if isinstance(old, LineEditUniform) or isinstance(old, CheckBoxUniform):
                 old.update()
                 old.show()
             else:
                 if old is not None:
                     old.delete()
-                self.uniforms[name] = LineEditUniform(self, name, value)
+                if types[name] == GL.GL_BOOL:
+                    self.uniforms[name] = CheckBoxUniform(self, name, value)
+                else:
+                    self.uniforms[name] = LineEditUniform(self, name, value)
 
     def load(self):
         filename = QFileDialog.getOpenFileName(self,
@@ -324,7 +321,8 @@ class MainWindow(QMainWindow):
             data, fnames = preprocess(filename)
             self.updater = Updater(fnames)
             self.glWidget.setFragmentShader(data)
-            self.updateUniforms(data, self.glWidget.getUniforms())
+            uniforms, types = self.glWidget.getUniforms()
+            self.updateUniforms(data, uniforms, types)
         except:
             e = sys.exc_info()[1]
             text = str(e)

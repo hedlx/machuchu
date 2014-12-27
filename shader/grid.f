@@ -2,6 +2,8 @@
 
 varying vec4 p;
 
+uniform bool test;
+
 uniform float time;
 uniform int x_period = 8;
 #pragma machachu slider x_period 1 30
@@ -22,6 +24,7 @@ void main()
 {
     float val = f(p.x, float(x_period))
               + f(p.y, float(y_period));
+    if (test)
     val *= 0.5;
     gl_FragColor = vec4(1.0-val, 1.0-val, 1.0, 1.0);
 }
