@@ -32,7 +32,7 @@ def preprocess_one(text, files, fname):
             match = INCLUDE_RE.match(line)
             if match:
                 path = os.path.dirname(fname)
-                path = "./" if path == "" else path + "/"
+                path = ("." if path == "" else path) + "/"
                 preprocess_one(text, files, path + match.groups()[0])
                 text.append("#line %d %d\n" % (n, files[fname]))
             else:

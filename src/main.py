@@ -272,7 +272,8 @@ class MainWindow(QMainWindow):
 
     def load(self):
         filename = QFileDialog.getOpenFileName(self,
-                                               filter="Fragment shader (*.f)")
+                                                directory="./shader",
+                                                filter="Fragment shader (*.f)")
         if filename[0] != '':
             self.loadFile(filename[0])
 
