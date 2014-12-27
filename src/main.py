@@ -23,8 +23,10 @@ class GentleLineEdit(QLineEdit):
         super(QLineEdit, self).__init__(label, parent)
         self.editingFinished.connect(self.clearFocus)
         self.editingFinished.connect(self.releaseKeyboard)
+        self.setAlignment(Qt.AlignRight)
 
-    def mousePressEvent(self, e):
+    def focusInEvent(self, e):
+        super(QLineEdit, self).focusInEvent(e)
         self.grabKeyboard()
 
 
@@ -309,7 +311,9 @@ class MainWindow(QMainWindow):
         wPos.setLayout(lPos)
         lPos.setContentsMargins(0,0,0,0)
         posX = GentleLineEdit()
+        posX.setValidator(QIntValidator())
         posY = GentleLineEdit()
+        posY.setValidator(QIntValidator())
         lPos.addWidget(QLabel("Position"))
         lPos.addWidget(posX)
         lPos.addWidget(posY)
@@ -321,7 +325,9 @@ class MainWindow(QMainWindow):
         wSize.setLayout(lSize)
         lSize.setContentsMargins(0,0,0,0)
         sizeX = GentleLineEdit()
+        sizeX.setValidator(QIntValidator())
         sizeY = GentleLineEdit()
+        sizeY.setValidator(QIntValidator())
         lSize.addWidget(QLabel("Size"))
         lSize.addWidget(sizeX)
         lSize.addWidget(sizeY)
@@ -334,6 +340,7 @@ class MainWindow(QMainWindow):
         lFPS.setContentsMargins(0,0,0,0)
         lFPS.addWidget(QLabel("FPS"))
         fps = GentleLineEdit()
+        fps.setValidator(QIntValidator())
         lFPS.addWidget(fps)
 
         renderLayout.addWidget(wFPS)
@@ -439,7 +446,7 @@ class MainWindow(QMainWindow):
             self.renderDock.show()
 
     def keyPressEvent(self, e):
-        if not e.isAutoRepeat():
+        if not e.isAutoRepeat() and not self.keyboardGrabber():
             if e.key() == Qt.Key_W:
                 self.glWidget.coord.add(y=+1)
             if e.key() == Qt.Key_S:
