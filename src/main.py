@@ -22,7 +22,7 @@ from updater import Updater
 class CoordUniform(object):
     def __init__(self):
         self.x = self.y = self.z = (0., 0., 0.)
-        self.height = 1
+        self.size = (1,1)
 
     def origin(self):
         self.x = (0.0, 0.0, self.x[2])
@@ -35,25 +35,32 @@ class CoordUniform(object):
         if z: self.z = f(self.z, z)
 
     def move(self, x, y):
-        z = 2./(1.1**self.z[0])/self.height
+        z = 2./(1.1**self.z[0])/self.size[1]
         f = lambda v, d: (v[0]+d*z, v[1], v[2])
         self.x = f(self.x, x)
         self.y = f(self.y, y)
 
-    def zoom(self, z):
+    def zoom(self, z, origin = None):
+        if origin:
+            sx, sy = origin[0]-self.size[0]/2., origin[1]-self.size[1]/2.
+        else:
+            sx, sy = (0, 0)
+        self.move(sx, -sy)
         self.z = (self.z[0]+z, self.z[1], self.z[2])
+        self.move(-sx, sy)
 
     def update(self):
         f = lambda v, s: (v[0]+v[1]/s, (v[1]*15 + v[2])/16, v[2])
         z = 25*1.1**self.z[0]
         self.x = f(self.x, z)
         self.y = f(self.y, z)
-        self.z = f(self.z, 5)
+        self.z = f(self.z, 2)
 
     def items(self):
         yield "_x", self.x[0]
         yield "_y", self.y[0]
         yield "_z", 1.1**self.z[0]
+        yield "_aspect", self.size[0] / self.size[1]
 
 
 class GLWidget(QGLWidget):
@@ -89,8 +96,7 @@ class GLWidget(QGLWidget):
 
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
-        self.coord.height = height
-        self.setUniform("_aspect", width / height)
+        self.coord.size = (width, height)
 
     def paintGL(self):
         GL.glBegin(GL.GL_TRIANGLE_STRIP)
@@ -134,8 +140,7 @@ class GLWidget(QGLWidget):
         program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
         GL.glUseProgram(program)
         self.program = program
-        self.coord.height = self.height()
-        self.setUniform("_aspect", self.width() / self.height())
+        self.coord.size = (self.width(), self.height())
         for name, value in self.coord.items():
             self.setUniform(name, value)
 
@@ -466,7 +471,7 @@ class MainWindow(QMainWindow):
     def wheelEvent(self, e):
         d = e.angleDelta()
         if QApplication.keyboardModifiers() & Qt.ControlModifier:
-            self.glWidget.coord.zoom(d.y()/100)
+            self.glWidget.coord.zoom(d.y()/100, (e.pos().x(), e.pos().y()))
         else:
             self.glWidget.coord.move(x=-d.x(), y=d.y())
 
