@@ -3,6 +3,9 @@
 varying vec4 p;
 uniform float time;
 
+uniform int draw_dots = 1;
+#pragma machachu checkbox draw_dots
+
 uniform int rank1 = 6, rank2 = 7;
 uniform int rotate_speed1 = 10, rotate_speed2 = -5;
 uniform int zoom_speed1 = 0, zoom_speed2 = 0;
@@ -30,13 +33,17 @@ void add(vec2 pos, vec3 color, vec2 center)
     pos *= pos;
     float d = pos.x+pos.y;
     if(res_d > d) {
+
         #ifdef BLACK_DOT_SIZE
-        if(d < distance_from_center * BLACK_DOT_SIZE) {
-            res_d = d;
-            res_color = color*0.8;
-            return;
+        if (bool(draw_dots)) {
+            if(d < distance_from_center * BLACK_DOT_SIZE) {
+                res_d = d;
+                res_color = color*0.8;
+                return;
+            }
         }
         #endif
+
         res_d = d;
         res_color = color;
     }

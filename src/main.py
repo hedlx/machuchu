@@ -203,6 +203,31 @@ class SliderUniform(UniformBase):
         self.slider.setMaximum(max)
         self.parent.glWidget.setUniform(self.name, self.value)
 
+class CheckBoxUniform(UniformBase):
+    def __init__(self, parent, name, value):
+        super(CheckBoxUniform, self).__init__(parent, name, value)
+        self.checkbox = QCheckBox()
+        self.checkbox.setCheckState(Qt.Unckecked if value == 0 else Qt.Checked)
+        self.checkbox.stateChanged.connect(lambda x: self.setValue(x))
+        self.init_widgets([self.checkbox, QLabel(name)])
+
+    def init_widgets(self, widgets):
+        box = QWidget()
+        layout = QHBoxLayout()
+        layout.setAlignment(Qt.AlignLeft);
+        box.setLayout(layout)
+        for w in widgets:
+            layout.addWidget(w)
+        self.parent.docklayout.addWidget(box)
+        self.widgets = widgets + [box]
+
+    def setValue(self, state):
+        self.parent.glWidget.setUniform(self.name,
+                                        1 if state == Qt.Checked else 0)
+
+    def update(self):
+        self.parent.glWidget.setUniform(self.name, self.value)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -257,6 +282,18 @@ class MainWindow(QMainWindow):
                         old.delete()
                     self.uniforms[name] = SliderUniform(self, name, value,
                                                         min, max)
+                unpragmed.remove(name)
+            if len(params) == 2 and params[0] == 'checkbox':
+                name = params[1]
+                value = uniforms[name]
+                old = self.uniforms.get(name, None)
+                if isinstance(old, CheckBoxUniform):
+                    old.update()
+                    old.show()
+                else:
+                    if old is not None:
+                        old.delete()
+                    self.uniforms[name] = CheckBoxUniform(self, name, value)
                 unpragmed.remove(name)
 
         for name in unpragmed:
@@ -365,7 +402,7 @@ class MainWindow(QMainWindow):
 
     def warpCursor(self):
         cursor = QCursor()
-        warp = lambda value, max: (value-1) % (max-2)+1
+        warp = lambda value, max: (value-1) % (max-2) + 1
         newCursorLocPos = QPoint(warp(self.cursorLocPos.x(), self.width()),
                                  warp(self.cursorLocPos.y(), self.height()))
         if newCursorLocPos != self.cursorLocPos:
