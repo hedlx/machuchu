@@ -162,7 +162,7 @@ class UniformBase(object):
     def init_widgets(self, widgets):
         self.widgets = widgets
         for w in widgets:
-            self.parent.docklayout.addWidget(w)
+            self.parent.shaderLayout.addWidget(w)
 
     def hide(self):
         for w in self.widgets: w.hide()
@@ -224,7 +224,7 @@ class CheckBoxUniform(UniformBase):
         box.setLayout(layout)
         for w in widgets:
             layout.addWidget(w)
-        self.parent.docklayout.addWidget(box)
+        self.parent.shaderLayout.addWidget(box)
         self.widgets = widgets + [box]
 
     def setValue(self, state):
@@ -242,16 +242,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('PyGL')
         self.glWidget = GLWidget(self)
         self.setCentralWidget(self.glWidget)
-        self.dock = QDockWidget()
-        self.addDockWidget(Qt.RightDockWidgetArea, self.dock)
-        widget = QWidget()
-        self.docklayout = QVBoxLayout()
-        loadButton = QPushButton("Load")
-        loadButton.clicked.connect(self.load)
-        self.docklayout.addWidget(loadButton)
-        widget.setLayout(self.docklayout)
-        self.dock.setWidget(widget)
-        self.docklayout.addStretch(0)
+        self.shaderDock, self.shaderLayout = self.initShaderDock()
+        self.addDockWidget(Qt.RightDockWidgetArea, self.shaderDock)
+
+        self.renderDock, self.renderLayout = self.initRenderDock()
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.renderDock)
 
         self.uniforms = {}
         self.filename = None
@@ -266,6 +261,75 @@ class MainWindow(QMainWindow):
         self.time_uniform = 0.
         self.timeron = True  # FIXME
         self.cursorLocPos = QPoint(0, 0)
+
+    def initShaderDock(self):
+        shaderDock = QDockWidget()
+        shaderLayout = QVBoxLayout()
+        widget = QWidget()
+        widget.setLayout(shaderLayout)
+        shaderDock.setWidget(widget)
+
+        loadButton = QPushButton("Load")
+        loadButton.clicked.connect(self.load)
+        shaderLayout.addWidget(loadButton)
+
+        shaderLayout.addStretch(0)
+        return shaderDock, shaderLayout
+
+    def initRenderDock(self):
+        renderDock = QDockWidget()
+        renderLayout = QVBoxLayout()
+        widget = QWidget()
+        widget.setLayout(renderLayout)
+        renderDock.setWidget(widget)
+
+        renderButton = QPushButton("Render")
+        renderLayout.addWidget(renderButton)
+
+        wCoord = QWidget()
+        lCoord = QHBoxLayout()
+        wCoord.setLayout(lCoord)
+
+        renderLayout.addWidget(wCoord)
+
+        wPos = QWidget()
+        lPos = QVBoxLayout()
+        wPos.setLayout(lPos)
+        posX = QLineEdit()
+        posY = QLineEdit()
+        lPos.addWidget(QLabel("Position"))
+        lPos.addWidget(posX)
+        lPos.addWidget(posY)
+
+        lCoord.addWidget(wPos)
+
+        wSize = QWidget()
+        lSize = QVBoxLayout()
+        wSize.setLayout(lSize)
+        sizeX = QLineEdit()
+        sizeY = QLineEdit()
+        lSize.addWidget(QLabel("Size"))
+        lSize.addWidget(sizeX)
+        lSize.addWidget(sizeY)
+
+        lCoord.addWidget(wSize)
+
+        wFPS = QWidget()
+        lFPS = QHBoxLayout()
+        wFPS.setLayout(lFPS)
+        lFPS.addWidget(QLabel("FPS"))
+        fps = QLineEdit()
+        lFPS.addWidget(fps)
+
+        renderLayout.addWidget(wFPS)
+
+        renderLayout.addWidget(QLabel("Output directory"))
+        path = QLineEdit()
+        renderLayout.addWidget(path)
+
+        renderLayout.addStretch(0)
+        renderDock.hide()
+        return renderDock, renderLayout
 
     def updateUniforms(self, data, uniforms, types):
         for uni in self.uniforms.values():
@@ -345,11 +409,17 @@ class MainWindow(QMainWindow):
         self.glWidget.tick()
         self.setWindowTitle(str(self.glWidget.getFps()))
 
-    def toggleDock(self):
-        if self.dock.isVisible():
-            self.dock.hide()
+    def toggleShaderDock(self):
+        if self.shaderDock.isVisible():
+            self.shaderDock.hide()
         else:
-            self.dock.show()
+            self.shaderDock.show()
+
+    def toggleRenderDock(self):
+        if self.renderDock.isVisible():
+            self.renderDock.hide()
+        else:
+            self.renderDock.show()
 
     def keyPressEvent(self, e):
         if not e.isAutoRepeat():
@@ -370,7 +440,9 @@ class MainWindow(QMainWindow):
         if e.key() == Qt.Key_P:
             self.timeron = not self.timeron
         if e.key() == Qt.Key_F:
-            self.toggleDock()
+            self.toggleShaderDock()
+        if e.key() == Qt.Key_R:
+            self.toggleRenderDock()
         if e.key() == Qt.Key_C:
             self.glWidget.coord.origin()
         if (e.modifiers() == Qt.ControlModifier) and (e.key() == Qt.Key_O):

@@ -2,7 +2,7 @@
 
 varying vec4 p;
 
-uniform bool test;
+uniform bool transparent;
 
 uniform float time;
 uniform int x_period = 8;
@@ -24,7 +24,7 @@ void main()
 {
     float val = f(p.x, float(x_period))
               + f(p.y, float(y_period));
-    if (test)
-    val *= 0.5;
+    if (transparent)
+        val *= 0.5;
     gl_FragColor = vec4(1.0-val, 1.0-val, 1.0, 1.0);
 }

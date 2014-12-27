@@ -3,7 +3,7 @@
 varying vec4 p;
 uniform float time;
 
-uniform bool draw_dots = true;
+uniform bool draw_dots = false;
 
 uniform int rank1 = 6, rank2 = 7;
 uniform int rotate_speed1 = 10, rotate_speed2 = -5;
