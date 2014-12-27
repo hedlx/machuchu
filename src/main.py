@@ -24,7 +24,7 @@ class GentleLineEdit(QLineEdit):
         self.editingFinished.connect(self.clearFocus)
         self.editingFinished.connect(self.releaseKeyboard)
 
-    def mouseReleaseEvent(self, e):
+    def mousePressEvent(self, e):
         self.grabKeyboard()
 
 
