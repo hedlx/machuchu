@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.dock)
         widget = QWidget()
         self.docklayout = QVBoxLayout()
-        loadButton = QPushButton("Load", shortcut=Qt.CTRL + Qt.Key_O)
+        loadButton = QPushButton("Load")
         loadButton.clicked.connect(self.load)
         self.docklayout.addWidget(loadButton)
         widget.setLayout(self.docklayout)
@@ -337,7 +337,7 @@ class MainWindow(QMainWindow):
             self.toggleDock()
         if e.key() == Qt.Key_C:
             self.glWidget.coord.origin()
-        if (e.modifiers() == Qt.CTRL) and (e.key() == Qt.Key_O):
+        if (e.modifiers() == Qt.ControlModifier) and (e.key() == Qt.Key_O):
             self.load()
 
     def keyReleaseEvent(self, e):
