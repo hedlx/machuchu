@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import re
+import os
 
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s+"([^"]+)"\s+$')
 
@@ -30,7 +31,9 @@ def preprocess_one(text, files, fname):
         for n, line in enumerate(f, 1):
             match = INCLUDE_RE.match(line)
             if match:
-                preprocess_one(text, files, match.groups()[0])
+                path = os.path.dirname(fname)
+                path = "./" if path == "" else path + "/"
+                preprocess_one(text, files, path + match.groups()[0])
                 text.append("#line %d %d\n" % (n, files[fname]))
             else:
                 text.append(line)

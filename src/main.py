@@ -364,9 +364,9 @@ class MainWindow(QMainWindow):
 
     def warpCursor(self):
         cursor = QCursor()
-        wrap = lambda value, max: (value-1) % (max-2)+1
-        newCursorLocPos = QPoint(wrap(self.cursorLocPos.x(), self.width()),
-                                 wrap(self.cursorLocPos.y(), self.height()))
+        warp = lambda value, max: (value-1) % (max-2)+1
+        newCursorLocPos = QPoint(warp(self.cursorLocPos.x(), self.width()),
+                                 warp(self.cursorLocPos.y(), self.height()))
         if newCursorLocPos != self.cursorLocPos:
             cursor.setPos(cursor.pos() + newCursorLocPos - self.cursorLocPos)
             self.cursorLocPos = newCursorLocPos
