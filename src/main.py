@@ -244,8 +244,8 @@ class CheckBoxUniform(UniformBase):
         self.widgets = widgets + [box]
 
     def setValue(self, state):
-        self.parent.glWidget.setUniform(self.name,
-                                        1 if state == Qt.Checked else 0)
+        self.value = 1 if state == Qt.Checked else 0
+        self.parent.glWidget.setUniform(self.name, self.value)
 
     def update(self):
         self.parent.glWidget.setUniform(self.name, self.value)
