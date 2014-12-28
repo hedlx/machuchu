@@ -55,3 +55,11 @@ vec3 lab2rgb(float l, float a, float b) {
     return map3(f, c);
     #undef f
 }
+
+vec3 labhsv(float h, float s, float v)
+{
+    h *= TAU;
+    s *= 100;
+    v *= 100;
+    return lab2rgb(v, s * sin(h), s * cos(h));
+}
