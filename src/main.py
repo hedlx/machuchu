@@ -430,6 +430,10 @@ class MainWindow(Qt.QMainWindow):
         self.glWidget.tick()
         self.setWindowTitle(str(self.glWidget.getFps()))
 
+    def reset_timer(self):
+        self.time_uniform = 0.0
+        self.glWidget.setUniform('time', self.time_uniform)
+
     def toggleShaderDock(self):
         if self.shaderDock.isVisible():
             self.shaderDock.hide()
@@ -456,6 +460,8 @@ class MainWindow(Qt.QMainWindow):
                 self.glWidget.coord.add(z=+1)
             if e.key() == Qt.Qt.Key_Comma:
                 self.glWidget.coord.add(z=-1)
+        if e.key() == Qt.Qt.Key_F10:
+            self.reset_timer()
         if e.key() == Qt.Qt.Key_Escape:
             self.close()
         if e.key() == Qt.Qt.Key_P:
