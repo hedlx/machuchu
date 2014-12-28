@@ -4,11 +4,15 @@
 
 from __future__ import print_function, division
 
-import sys, re, signal, time, collections
+import collections
+import re
+import signal
+import sys
+import time
 from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtOpenGL import *
+from PyQt5.QtWidgets import *
 from OpenGL import GL
 import OpenGL.arrays
 import OpenGL.GL.shaders
@@ -17,6 +21,7 @@ from updater import Updater
 
 # global TODO: handle input (python code in shader comment, eval it),
 #              advanced GUI generation (from comments)
+
 
 class GentleLineEdit(QLineEdit):
     def __init__(self, label="", parent=None):
@@ -33,7 +38,7 @@ class GentleLineEdit(QLineEdit):
 class CoordUniform(object):
     def __init__(self):
         self.x = self.y = self.z = (0., 0., 0.)
-        self.size = (1,1)
+        self.size = (1, 1)
 
     def origin(self):
         self.x = (0.0, 0.0, self.x[2])
@@ -41,9 +46,9 @@ class CoordUniform(object):
 
     def add(self, x=0., y=0., z=0.):
         f = lambda v, d: (v[0], v[1], v[2]+d)
-        if x: self.x = f(self.x, x)
-        if y: self.y = f(self.y, y)
-        if z: self.z = f(self.z, z)
+        self.x = f(self.x, x)
+        self.y = f(self.y, y)
+        self.z = f(self.z, z)
 
     def move(self, x, y):
         z = 2./(1.1**self.z[0])/self.size[1]
@@ -51,7 +56,7 @@ class CoordUniform(object):
         self.x = f(self.x, x)
         self.y = f(self.y, y)
 
-    def zoom(self, z, origin = None):
+    def zoom(self, z, origin=None):
         if origin:
             sx, sy = origin[0]-self.size[0]/2., origin[1]-self.size[1]/2.
         else:
@@ -159,8 +164,10 @@ class GLWidget(QGLWidget):
         if self.program is not None:
             loc = GL.glGetUniformLocation(self.program, name)
             # TODO: coerce value to appropriate type
-            if isinstance(value, float): GL.glUniform1f(loc, value)
-            if isinstance(value, (bool, int)): GL.glUniform1i(loc, value)
+            if isinstance(value, float):
+                GL.glUniform1f(loc, value)
+            if isinstance(value, (bool, int)):
+                GL.glUniform1i(loc, value)
 
     def tick(self):
         self.coord.update()
@@ -187,13 +194,16 @@ class UniformBase(object):
         self.parent.glWidget.setUniform(self.name, self.value)
 
     def hide(self):
-        for w in self.widgets: w.hide()
+        for w in self.widgets:
+            w.hide()
 
     def show(self):
-        for w in self.widgets: w.show()
+        for w in self.widgets:
+            w.show()
 
     def delete(self):
-        for w in self.widgets: w.setParent(None)
+        for w in self.widgets:
+            w.setParent(None)
 
 
 class LineEditUniform(UniformBase):
@@ -203,8 +213,10 @@ class LineEditUniform(UniformBase):
         edit = GentleLineEdit(str(value))
 
         def l(text):
-            try: value = float(text)
-            except ValueError: return
+            try:
+                value = float(text)
+            except ValueError:
+                return
             self._set_value(value)
         edit.textChanged.connect(l)
         self.init_widgets([label, edit])
@@ -227,13 +239,14 @@ class SliderUniform(UniformBase):
         self.slider.setMaximum(max)
         self.parent.glWidget.setUniform(self.name, self.value)
 
+
 class CheckBoxUniform(UniformBase):
     def __init__(self, parent, name, value):
         super(CheckBoxUniform, self).__init__(parent, name, value)
-        checkbox = QCheckBox(name)
-        checkbox.setCheckState(Qt.Unchecked if value == 0 else Qt.Checked)
-        checkbox.stateChanged.connect(lambda x: self._set_value(x == Qt.Checked))
-        self.init_widgets([checkbox])
+        cbox = QCheckBox(name)
+        cbox.setCheckState(Qt.Unchecked if value == 0 else Qt.Checked)
+        cbox.stateChanged.connect(lambda _: self._set_value(cbox.isChecked()))
+        self.init_widgets([cbox])
 
     def update(self):
         self.parent.glWidget.setUniform(self.name, self.value)
@@ -290,14 +303,14 @@ class MainWindow(QMainWindow):
         wCoord = QWidget()
         lCoord = QHBoxLayout()
         wCoord.setLayout(lCoord)
-        lCoord.setContentsMargins(0,0,0,0)
+        lCoord.setContentsMargins(0, 0, 0, 0)
 
         renderLayout.addWidget(wCoord)
 
         wPos = QWidget()
         lPos = QVBoxLayout()
         wPos.setLayout(lPos)
-        lPos.setContentsMargins(0,0,0,0)
+        lPos.setContentsMargins(0, 0, 0, 0)
         posX = GentleLineEdit()
         posX.setValidator(QIntValidator())
         posY = GentleLineEdit()
@@ -311,7 +324,7 @@ class MainWindow(QMainWindow):
         wSize = QWidget()
         lSize = QVBoxLayout()
         wSize.setLayout(lSize)
-        lSize.setContentsMargins(0,0,0,0)
+        lSize.setContentsMargins(0, 0, 0, 0)
         sizeX = GentleLineEdit()
         sizeX.setValidator(QIntValidator())
         sizeY = GentleLineEdit()
@@ -325,7 +338,7 @@ class MainWindow(QMainWindow):
         wFPS = QWidget()
         lFPS = QHBoxLayout()
         wFPS.setLayout(lFPS)
-        lFPS.setContentsMargins(0,0,0,0)
+        lFPS.setContentsMargins(0, 0, 0, 0)
         lFPS.addWidget(QLabel("FPS"))
         fps = GentleLineEdit()
         fps.setValidator(QIntValidator())
@@ -369,7 +382,7 @@ class MainWindow(QMainWindow):
         for name in unpragmed:
             value = uniforms[name]
             old = self.uniforms.get(name, None)
-            if isinstance(old, LineEditUniform) or isinstance(old, CheckBoxUniform):
+            if isinstance(old, (LineEditUniform, CheckBoxUniform)):
                 old.update()
                 old.show()
             else:
@@ -382,8 +395,8 @@ class MainWindow(QMainWindow):
 
     def load(self):
         filename = QFileDialog.getOpenFileName(self,
-                                                directory="./shader",
-                                                filter="Fragment shader (*.f)")
+                                               directory="./shader",
+                                               filter="Fragment shader (*.f)")
         if filename[0] != '':
             self.loadFile(filename[0])
 
