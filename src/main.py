@@ -9,29 +9,26 @@ import re
 import signal
 import sys
 import time
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtOpenGL import *
-from PyQt5.QtWidgets import *
 from OpenGL import GL
 import OpenGL.arrays
 import OpenGL.GL.shaders
 from preprocessor import preprocess
 from updater import Updater
+import Qt
 
 # global TODO: handle input (python code in shader comment, eval it),
 #              advanced GUI generation (from comments)
 
 
-class GentleLineEdit(QLineEdit):
+class GentleLineEdit(Qt.QLineEdit):
     def __init__(self, label="", parent=None):
-        super(QLineEdit, self).__init__(label, parent)
+        super(GentleLineEdit, self).__init__(label, parent)
         self.editingFinished.connect(self.clearFocus)
         self.editingFinished.connect(self.releaseKeyboard)
-        self.setAlignment(Qt.AlignRight)
+        self.setAlignment(Qt.Qt.AlignRight)
 
     def focusInEvent(self, e):
-        super(QLineEdit, self).focusInEvent(e)
+        super(GentleLineEdit, self).focusInEvent(e)
         self.grabKeyboard()
 
 
@@ -79,7 +76,7 @@ class CoordUniform(object):
         yield "_aspect", self.size[0] / self.size[1]
 
 
-class GLWidget(QGLWidget):
+class GLWidget(Qt.QGLWidget):
     vertexShaderData = """
         #version 120
 
@@ -209,7 +206,7 @@ class UniformBase(object):
 class LineEditUniform(UniformBase):
     def __init__(self, parent, name, value):
         super(LineEditUniform, self).__init__(parent, name, value)
-        label = QLabel(name)
+        label = Qt.QLabel(name)
         edit = GentleLineEdit(str(value))
 
         def l(text):
@@ -228,11 +225,11 @@ class LineEditUniform(UniformBase):
 class SliderUniform(UniformBase):
     def __init__(self, parent, name, value, min, max):
         super(SliderUniform, self).__init__(parent, name, value)
-        self.slider = QSlider(Qt.Horizontal)
+        self.slider = Qt.QSlider(Qt.Qt.Horizontal)
         self.slider.setValue(value)
         self.update(min, max)
         self.slider.valueChanged.connect(lambda x: self._set_value(x))
-        self.init_widgets([QLabel(name), self.slider])
+        self.init_widgets([Qt.QLabel(name), self.slider])
 
     def update(self, min, max):
         self.slider.setMinimum(min)
@@ -243,8 +240,8 @@ class SliderUniform(UniformBase):
 class CheckBoxUniform(UniformBase):
     def __init__(self, parent, name, value):
         super(CheckBoxUniform, self).__init__(parent, name, value)
-        cbox = QCheckBox(name)
-        cbox.setCheckState(Qt.Unchecked if value == 0 else Qt.Checked)
+        cbox = Qt.QCheckBox(name)
+        cbox.setCheckState(Qt.Qt.Unchecked if value == 0 else Qt.Qt.Checked)
         cbox.stateChanged.connect(lambda _: self._set_value(cbox.isChecked()))
         self.init_widgets([cbox])
 
@@ -252,7 +249,7 @@ class CheckBoxUniform(UniformBase):
         self.parent.glWidget.setUniform(self.name, self.value)
 
 
-class MainWindow(QMainWindow):
+class MainWindow(Qt.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.resize(800, 600)
@@ -260,33 +257,33 @@ class MainWindow(QMainWindow):
         self.glWidget = GLWidget(self)
         self.setCentralWidget(self.glWidget)
         self.shaderDock, self.shaderLayout = self.initShaderDock()
-        self.addDockWidget(Qt.RightDockWidgetArea, self.shaderDock)
+        self.addDockWidget(Qt.Qt.RightDockWidgetArea, self.shaderDock)
 
         self.renderDock, self.renderLayout = self.initRenderDock()
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.renderDock)
+        self.addDockWidget(Qt.Qt.LeftDockWidgetArea, self.renderDock)
 
         self.uniforms = {}
         self.filename = None
         self.updater = None
 
-        self.timer = QTimer(self)
+        self.timer = Qt.QTimer(self)
         self.timer.setInterval(20)
         self.timer.timeout.connect(self.tick)
         self.timer.start()
-        self.time = QTime()
+        self.time = Qt.QTime()
         self.time.start()
         self.time_uniform = 0.
         self.timeron = True  # FIXME
-        self.cursorLocPos = QPoint(0, 0)
+        self.cursorLocPos = Qt.QPoint(0, 0)
 
     def initShaderDock(self):
-        shaderDock = QDockWidget()
-        shaderLayout = QVBoxLayout()
-        widget = QWidget()
+        shaderDock = Qt.QDockWidget()
+        shaderLayout = Qt.QVBoxLayout()
+        widget = Qt.QWidget()
         widget.setLayout(shaderLayout)
         shaderDock.setWidget(widget)
 
-        loadButton = QPushButton("Load")
+        loadButton = Qt.QPushButton("Load")
         loadButton.clicked.connect(self.load)
         shaderLayout.addWidget(loadButton)
 
@@ -294,62 +291,62 @@ class MainWindow(QMainWindow):
         return shaderDock, shaderLayout
 
     def initRenderDock(self):
-        renderDock = QDockWidget()
-        renderLayout = QVBoxLayout()
-        widget = QWidget()
+        renderDock = Qt.QDockWidget()
+        renderLayout = Qt.QVBoxLayout()
+        widget = Qt.QWidget()
         widget.setLayout(renderLayout)
         renderDock.setWidget(widget)
 
-        wCoord = QWidget()
-        lCoord = QHBoxLayout()
+        wCoord = Qt.QWidget()
+        lCoord = Qt.QHBoxLayout()
         wCoord.setLayout(lCoord)
         lCoord.setContentsMargins(0, 0, 0, 0)
 
         renderLayout.addWidget(wCoord)
 
-        wPos = QWidget()
-        lPos = QVBoxLayout()
+        wPos = Qt.QWidget()
+        lPos = Qt.QVBoxLayout()
         wPos.setLayout(lPos)
         lPos.setContentsMargins(0, 0, 0, 0)
         posX = GentleLineEdit()
-        posX.setValidator(QIntValidator())
+        posX.setValidator(Qt.QIntValidator())
         posY = GentleLineEdit()
-        posY.setValidator(QIntValidator())
-        lPos.addWidget(QLabel("Position"))
+        posY.setValidator(Qt.QIntValidator())
+        lPos.addWidget(Qt.QLabel("Position"))
         lPos.addWidget(posX)
         lPos.addWidget(posY)
 
         lCoord.addWidget(wPos)
 
-        wSize = QWidget()
-        lSize = QVBoxLayout()
+        wSize = Qt.QWidget()
+        lSize = Qt.QVBoxLayout()
         wSize.setLayout(lSize)
         lSize.setContentsMargins(0, 0, 0, 0)
         sizeX = GentleLineEdit()
-        sizeX.setValidator(QIntValidator())
+        sizeX.setValidator(Qt.QIntValidator())
         sizeY = GentleLineEdit()
-        sizeY.setValidator(QIntValidator())
-        lSize.addWidget(QLabel("Size"))
+        sizeY.setValidator(Qt.QIntValidator())
+        lSize.addWidget(Qt.QLabel("Size"))
         lSize.addWidget(sizeX)
         lSize.addWidget(sizeY)
 
         lCoord.addWidget(wSize)
 
-        wFPS = QWidget()
-        lFPS = QHBoxLayout()
+        wFPS = Qt.QWidget()
+        lFPS = Qt.QHBoxLayout()
         wFPS.setLayout(lFPS)
         lFPS.setContentsMargins(0, 0, 0, 0)
-        lFPS.addWidget(QLabel("FPS"))
+        lFPS.addWidget(Qt.QLabel("FPS"))
         fps = GentleLineEdit()
-        fps.setValidator(QIntValidator())
+        fps.setValidator(Qt.QIntValidator())
         lFPS.addWidget(fps)
 
         renderLayout.addWidget(wFPS)
 
-        saveButton = QPushButton("Set output directory...")
+        saveButton = Qt.QPushButton("Set output directory...")
         renderLayout.addWidget(saveButton)
 
-        renderButton = QPushButton("Render")
+        renderButton = Qt.QPushButton("Render")
         renderLayout.addWidget(renderButton)
 
         renderLayout.addStretch(0)
@@ -394,9 +391,8 @@ class MainWindow(QMainWindow):
                     self.uniforms[name] = LineEditUniform(self, name, value)
 
     def load(self):
-        filename = QFileDialog.getOpenFileName(self,
-                                               directory="./shader",
-                                               filter="Fragment shader (*.f)")
+        filename = Qt.QFileDialog.getOpenFileName(
+            self, directory="./shader", filter="Fragment shader (*.f)")
         if filename[0] != '':
             self.loadFile(filename[0])
 
@@ -420,8 +416,8 @@ class MainWindow(QMainWindow):
                e.args[2] == GL.GL_FRAGMENT_SHADER:
                 text = e.args[0]
 
-            mb = QMessageBox(QMessageBox.Warning, "Error loading shader",
-                             text, QMessageBox.Ok)
+            mb = Qt.QMessageBox(Qt.QMessageBox.Warning, "Error loading shader",
+                                text, Qt.QMessageBox.Ok)
             mb.exec_()
 
     def tick(self):
@@ -448,64 +444,64 @@ class MainWindow(QMainWindow):
 
     def keyPressEvent(self, e):
         if not e.isAutoRepeat() and not self.keyboardGrabber():
-            if e.key() == Qt.Key_W:
+            if e.key() == Qt.Qt.Key_W:
                 self.glWidget.coord.add(y=+1)
-            if e.key() == Qt.Key_S:
+            if e.key() == Qt.Qt.Key_S:
                 self.glWidget.coord.add(y=-1)
-            if e.key() == Qt.Key_A:
+            if e.key() == Qt.Qt.Key_A:
                 self.glWidget.coord.add(x=-1)
-            if e.key() == Qt.Key_D:
+            if e.key() == Qt.Qt.Key_D:
                 self.glWidget.coord.add(x=+1)
-            if e.key() == Qt.Key_Period:
+            if e.key() == Qt.Qt.Key_Period:
                 self.glWidget.coord.add(z=+1)
-            if e.key() == Qt.Key_Comma:
+            if e.key() == Qt.Qt.Key_Comma:
                 self.glWidget.coord.add(z=-1)
-        if e.key() == Qt.Key_Escape:
+        if e.key() == Qt.Qt.Key_Escape:
             self.close()
-        if e.key() == Qt.Key_P:
+        if e.key() == Qt.Qt.Key_P:
             self.timeron = not self.timeron
-        if e.key() == Qt.Key_F:
+        if e.key() == Qt.Qt.Key_F:
             self.toggleShaderDock()
-        if e.key() == Qt.Key_R:
+        if e.key() == Qt.Qt.Key_R:
             self.toggleRenderDock()
-        if e.key() == Qt.Key_C:
+        if e.key() == Qt.Qt.Key_C:
             self.glWidget.coord.origin()
-        if (e.modifiers() == Qt.ControlModifier) and (e.key() == Qt.Key_O):
+        if e.modifiers() == Qt.Qt.ControlModifier and e.key() == Qt.Qt.Key_O:
             self.load()
 
     def keyReleaseEvent(self, e):
         if not e.isAutoRepeat() and not self.keyboardGrabber():
-            if e.key() == Qt.Key_W:
+            if e.key() == Qt.Qt.Key_W:
                 self.glWidget.coord.add(y=-1)
-            if e.key() == Qt.Key_S:
+            if e.key() == Qt.Qt.Key_S:
                 self.glWidget.coord.add(y=+1)
-            if e.key() == Qt.Key_A:
+            if e.key() == Qt.Qt.Key_A:
                 self.glWidget.coord.add(x=+1)
-            if e.key() == Qt.Key_D:
+            if e.key() == Qt.Qt.Key_D:
                 self.glWidget.coord.add(x=-1)
-            if e.key() == Qt.Key_Period:
+            if e.key() == Qt.Qt.Key_Period:
                 self.glWidget.coord.add(z=-1)
-            if e.key() == Qt.Key_Comma:
+            if e.key() == Qt.Qt.Key_Comma:
                 self.glWidget.coord.add(z=+1)
 
     def wheelEvent(self, e):
         d = e.angleDelta()
-        if QApplication.keyboardModifiers() & Qt.ControlModifier:
+        if Qt.QApplication.keyboardModifiers() & Qt.Qt.ControlModifier:
             self.glWidget.coord.zoom(d.y()/100, (e.pos().x(), e.pos().y()))
         else:
             self.glWidget.coord.move(x=-d.x(), y=d.y())
 
     def warpCursor(self):
-        cursor = QCursor()
+        cursor = Qt.QCursor()
         warp = lambda value, max: (value-1) % (max-2) + 1
-        newCursorLocPos = QPoint(warp(self.cursorLocPos.x(), self.width()),
-                                 warp(self.cursorLocPos.y(), self.height()))
+        newCursorLocPos = Qt.QPoint(warp(self.cursorLocPos.x(), self.width()),
+                                    warp(self.cursorLocPos.y(), self.height()))
         if newCursorLocPos != self.cursorLocPos:
             cursor.setPos(cursor.pos() + newCursorLocPos - self.cursorLocPos)
             self.cursorLocPos = newCursorLocPos
 
     def mousePressEvent(self, e):
-        if e.button() == Qt.MidButton or e.button() == Qt.RightButton:
+        if e.button() == Qt.Qt.MidButton or e.button() == Qt.Qt.RightButton:
             self.cursorLocPos = e.pos()
         grabber = self.keyboardGrabber()
         if grabber:
@@ -513,16 +509,16 @@ class MainWindow(QMainWindow):
             grabber.clearFocus()
 
     def mouseMoveEvent(self, e):
-        if e.buttons() == Qt.MidButton or e.buttons() == Qt.RightButton:
+        if e.buttons() == Qt.Qt.MidButton or e.buttons() == Qt.Qt.RightButton:
             d = self.cursorLocPos - e.pos()
             self.cursorLocPos = e.pos()
             self.warpCursor()
             self.glWidget.coord.move(d.x(), -d.y())
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-app = QApplication(sys.argv)
+app = Qt.QApplication(sys.argv)
 win = MainWindow()
 win.show()
-if len(QApplication.arguments()) > 1:
-    win.loadFile(QApplication.arguments()[1])
+if len(Qt.QApplication.arguments()) > 1:
+    win.loadFile(Qt.QApplication.arguments()[1])
 sys.exit(app.exec_())
