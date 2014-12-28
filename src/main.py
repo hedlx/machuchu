@@ -158,8 +158,9 @@ class GLWidget(QGLWidget):
     def setUniform(self, name, value):
         if self.program is not None:
             loc = GL.glGetUniformLocation(self.program, name)
+            # TODO: coerce value to appropriate type
             if isinstance(value, float): GL.glUniform1f(loc, value)
-            if isinstance(value, int): GL.glUniform1i(loc, value)
+            if isinstance(value, (bool, int)): GL.glUniform1i(loc, value)
 
     def tick(self):
         self.coord.update()
@@ -169,6 +170,7 @@ class GLWidget(QGLWidget):
         self.times.append(time.time())
 
 
+# TODO: UniformBase should inherit QWidget
 class UniformBase(object):
     def __init__(self, parent, name, value):
         self.parent = parent
@@ -179,6 +181,10 @@ class UniformBase(object):
         self.widgets = widgets
         for w in widgets:
             self.parent.shaderLayout.addWidget(w)
+
+    def _set_value(self, value):
+        self.value = value
+        self.parent.glWidget.setUniform(self.name, self.value)
 
     def hide(self):
         for w in self.widgets: w.hide()
@@ -197,9 +203,9 @@ class LineEditUniform(UniformBase):
         edit = GentleLineEdit(str(value))
 
         def l(text):
-            try: self.value = float(text)
+            try: value = float(text)
             except ValueError: return
-            self.parent.glWidget.setUniform(name, self.value)
+            self._set_value(value)
         edit.textChanged.connect(l)
         self.init_widgets([label, edit])
 
@@ -213,12 +219,8 @@ class SliderUniform(UniformBase):
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setValue(value)
         self.update(min, max)
-        self.slider.valueChanged.connect(lambda x: self.setValue(x))
+        self.slider.valueChanged.connect(lambda x: self._set_value(x))
         self.init_widgets([QLabel(name), self.slider])
-
-    def setValue(self, value):
-        self.value = value
-        self.parent.glWidget.setUniform(self.name, value)
 
     def update(self, min, max):
         self.slider.setMinimum(min)
@@ -228,24 +230,10 @@ class SliderUniform(UniformBase):
 class CheckBoxUniform(UniformBase):
     def __init__(self, parent, name, value):
         super(CheckBoxUniform, self).__init__(parent, name, value)
-        self.checkbox = QCheckBox()
-        self.checkbox.setCheckState(Qt.Unchecked if value == 0 else Qt.Checked)
-        self.checkbox.stateChanged.connect(lambda x: self.setValue(x))
-        self.init_widgets([self.checkbox, QLabel(name)])
-
-    def init_widgets(self, widgets):
-        box = QWidget()
-        layout = QHBoxLayout()
-        layout.setAlignment(Qt.AlignLeft);
-        box.setLayout(layout)
-        for w in widgets:
-            layout.addWidget(w)
-        self.parent.shaderLayout.addWidget(box)
-        self.widgets = widgets + [box]
-
-    def setValue(self, state):
-        self.value = 1 if state == Qt.Checked else 0
-        self.parent.glWidget.setUniform(self.name, self.value)
+        checkbox = QCheckBox(name)
+        checkbox.setCheckState(Qt.Unchecked if value == 0 else Qt.Checked)
+        checkbox.stateChanged.connect(lambda x: self._set_value(x == Qt.Checked))
+        self.init_widgets([checkbox])
 
     def update(self):
         self.parent.glWidget.setUniform(self.name, self.value)
