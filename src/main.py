@@ -267,7 +267,7 @@ class MainWindow(Qt.QMainWindow):
         self.updater = None
 
         self.timer = Qt.QTimer(self)
-        self.timer.setInterval(20)
+        self.timer.setInterval(15)
         self.timer.timeout.connect(self.tick)
         self.timer.start()
         self.time = Qt.QTime()
