@@ -8,12 +8,12 @@ uniform bool draw_dots = false;
 uniform int rank1 = 6, rank2 = 7;
 uniform int rotate_speed1 = 10, rotate_speed2 = -5;
 uniform int zoom_speed1 = 0, zoom_speed2 = 0;
-#pragma machachu slider rank1 2 10
-#pragma machachu slider rank2 2 10
-#pragma machachu slider rotate_speed1 -100 100
-#pragma machachu slider rotate_speed2 -100 100
-#pragma machachu slider zoom_speed1 -100 100
-#pragma machachu slider zoom_speed2 -100 100
+#pragma machuchu slider rank1 2 10
+#pragma machuchu slider rank2 2 10
+#pragma machuchu slider rotate_speed1 -100 100
+#pragma machuchu slider rotate_speed2 -100 100
+#pragma machuchu slider zoom_speed1 -100 100
+#pragma machuchu slider zoom_speed2 -100 100
 
 #include "lib.h"
 

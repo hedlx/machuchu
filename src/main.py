@@ -358,7 +358,7 @@ class MainWindow(Qt.QMainWindow):
             uni.hide()
         unpragmed = set(uniforms)
         unpragmed.discard('time')
-        r = re.compile(r'^\s*#\s*pragma\s+machachu\s+(.*)$', re.M)
+        r = re.compile(r'^\s*#\s*pragma\s+machuchu\s+(.*)$', re.M)
         for params in r.findall(data):
             params = re.split(r"\s+", params)
             if len(params) == 4 and params[0] == 'slider':

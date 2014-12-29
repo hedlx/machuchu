@@ -3,7 +3,7 @@
 varying vec4 p;
 
 uniform int depth = 64;
-#pragma machachu slider depth 2 512
+#pragma machuchu slider depth 2 512
 
 uniform float time;
 
