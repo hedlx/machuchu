@@ -428,7 +428,7 @@ class MainWindow(Qt.QMainWindow):
             self.glWidget.setUniform('time', self.time_uniform)
         self.time.start()
         self.glWidget.tick()
-        self.setWindowTitle(str(self.glWidget.getFps()))
+        self.setWindowTitle("{:d} fps".format(round(self.glWidget.getFps())))
 
     def reset_timer(self):
         self.time_uniform = 0.0
