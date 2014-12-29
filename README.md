@@ -12,20 +12,17 @@ http://z0r.de/2430
 
 Usage
 -----
-1. Run ./machuchu.
-2. Click a "Load" button or press Ctrl+O and choose a shader file (.f).
-3. Controls
-    Key binding                 | Action
-    ----------------------------| ---------------------
-    W,A,S,D                     | Pan a view
-    Middle/Right mouse button   | Pan a view
-    C                           | Position reset
-    .                           | Zoom in
-    ,                           | Zoom out
-    Mouse wheel                 | Zoom in/out
-    V                           | Zoom reset
-    P                           | Pause
-    F                           | Toggle a shader panel
-    F10                         | Timer reset
-    ESC                         | Quit
-4. The shader's code will be reloaded automatically if it changed.
+* Run ./machuchu.
+* Click a "Load" button or press Ctrl+O and choose a shader file (.f).
+* Controls
+    * W, A, S, D, Middle/Right mouse button — pan a view
+    * C — position reset
+    * Period key  — zoom in
+    * Comma key — zoom out
+    * Mouse wheel — zoom in/out
+    * V — zoom reset
+    * P — pause
+    * F — toggle a shader panel
+    * F10 — timer reset
+    * ESC — quit
+* The shader's code will be reloaded automatically if it changed.
