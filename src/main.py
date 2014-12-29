@@ -133,15 +133,15 @@ class GLWidget(Qt.QGLWidget):
             if name[0] == '_':  # FIXME: ignore uniforms from vertexShaderData
                 continue
             if size == 1 and type_ == GL.GL_INT:
-                arr = OpenGL.arrays.GLintArray.zeros(1)
+                arr = OpenGL.arrays.GLintArray.zeros([1])
                 GL.glGetUniformiv(self.program, loc, arr)
                 uniforms[name] = arr[0]
             if size == 1 and type_ == GL.GL_FLOAT:
-                arr = OpenGL.arrays.GLfloatArray.zeros(1)
+                arr = OpenGL.arrays.GLfloatArray.zeros([1])
                 GL.glGetUniformfv(self.program, loc, arr)
                 uniforms[name] = arr[0]
             if size == 1 and type_ == GL.GL_BOOL:
-                arr = OpenGL.arrays.GLintArray.zeros(1)
+                arr = OpenGL.arrays.GLintArray.zeros([1])
                 GL.glGetUniformiv(self.program, loc, arr)
                 uniforms[name] = arr[0]
             types[name] = type_
