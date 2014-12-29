@@ -120,7 +120,7 @@ class GLWidget(Qt.QGLWidget):
         GL.glEnd()
 
     def getFps(self):
-        return len(self.times) / (self.times[-1] - self.times[0])
+        return (len(self.times)-1) / (self.times[-1] - self.times[0])
 
     def getUniforms(self):
         uniforms = {}
