@@ -41,6 +41,9 @@ class CoordUniform(object):
         self.x = (0.0, 0.0, self.x[2])
         self.y = (0.0, 0.0, self.y[2])
 
+    def zoom_reset(self):
+        self.z = (0.0, 0.0, 0.0)
+
     def add(self, x=0., y=0., z=0.):
         f = lambda v, d: (v[0], v[1], v[2]+d)
         self.x = f(self.x, x)
@@ -430,7 +433,7 @@ class MainWindow(Qt.QMainWindow):
         self.glWidget.tick()
         self.setWindowTitle("{:d} fps".format(round(self.glWidget.getFps())))
 
-    def reset_timer(self):
+    def timer_reset(self):
         self.time_uniform = 0.0
         self.glWidget.setUniform('time', self.time_uniform)
 
@@ -461,7 +464,7 @@ class MainWindow(Qt.QMainWindow):
             if e.key() == Qt.Qt.Key_Comma:
                 self.glWidget.coord.add(z=-1)
         if e.key() == Qt.Qt.Key_F10:
-            self.reset_timer()
+            self.timer_reset()
         if e.key() == Qt.Qt.Key_Escape:
             self.close()
         if e.key() == Qt.Qt.Key_P:
@@ -472,6 +475,8 @@ class MainWindow(Qt.QMainWindow):
             self.toggleRenderDock()
         if e.key() == Qt.Qt.Key_C:
             self.glWidget.coord.origin()
+        if e.key() == Qt.Qt.Key_V:
+            self.glWidget.coord.zoom_reset()
         if e.modifiers() == Qt.Qt.ControlModifier and e.key() == Qt.Qt.Key_O:
             self.load()
 

@@ -14,5 +14,18 @@ Usage
 -----
 1. Run ./machuchu.
 2. Click a "Load" button or press Ctrl+O and choose a shader file (.f).
-3. Use W,A,S,D keys to pan a view, period and comma keys to zoom, C key to return to origin. Press Esc to quit, P to pause and F to toggle a panel.
+3. Controls
+    Key binding                 | Action
+    ----------------------------| ---------------------
+    W,A,S,D                     | Pan a view
+    Middle/Right mouse button   | Pan a view
+    C                           | Position reset
+    .                           | Zoom in
+    ,                           | Zoom out
+    Mouse wheel                 | Zoom in/out
+    V                           | Zoom reset
+    P                           | Pause
+    F                           | Toggle a shader panel
+    F10                         | Timer reset
+    ESC                         | Quit
 4. The shader's code will be reloaded automatically if it changed.
