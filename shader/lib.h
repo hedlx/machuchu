@@ -10,8 +10,10 @@ const float TAU = radians(360);
 #define map3(f, v) vec3(f((v).x), f((v).y), f((v).z))
 
 int   idiv (int a, int b) { return a/b + (a%b>0?1:0); }
+int   imod (int a, int b) { return a>=0 ? a%b : b-1+(a+1)%b; }
 float add2 (vec2 a) { return a.x + a.y; }
 float sub2 (vec2 a) { return a.x - a.y; }
+bool  bxor2(bvec2 a) { return a.x ^^ a.y; }
 vec2  flip2(vec2 a) { return vec2(a.y, a.x); }
 
 vec2 cx_conj(vec2 a) { return vec2(a.x, -a.y); }
