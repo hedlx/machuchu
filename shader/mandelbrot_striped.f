@@ -7,7 +7,7 @@ uniform int depth = 64;
 
 uniform float time;
 
-#include "lib.h"
+#include "color.h"
 
 #define COLOR(RGB) vec3(\
   (0x##RGB>>16&0xFF)/255., \

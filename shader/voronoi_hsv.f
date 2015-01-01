@@ -15,7 +15,7 @@ uniform int zoom_speed1 = 0, zoom_speed2 = 0;
 #pragma machuchu slider zoom_speed1 -100 100
 #pragma machuchu slider zoom_speed2 -100 100
 
-#include "lib.h"
+#include "color.h"
 
 #define BLACK_DOT_SIZE 0.0002
 //#define DEBUG_RINGS 2

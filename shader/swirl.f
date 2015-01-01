@@ -7,6 +7,7 @@ varying vec4 p;
 uniform float time;
 
 #include "lib.h"
+#include "color.h"
 
 void main() {
     float x = p.x;

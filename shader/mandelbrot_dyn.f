@@ -6,7 +6,7 @@ uniform float param1 = 128.;
 uniform float param2 = 16.;
 uniform float time;
 
-#include "lib.h"
+#include "color.h"
 
 float mandel(vec2 c, int n)
 {
