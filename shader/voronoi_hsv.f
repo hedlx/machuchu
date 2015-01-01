@@ -48,10 +48,6 @@ void add(vec2 pos, vec3 color, vec2 center)
     }
 }
 
-int div_up(int a, int b) {
-        return a/b + (a%b>0?1:0);
-}
-
 void endless(int rank, float ring_dist, float zoom, float rotation, vec2 center, float sat)
 {
     if(rank <= 2) return;
@@ -68,7 +64,7 @@ void endless(int rank, float ring_dist, float zoom, float rotation, vec2 center,
     debug_rings += center_ring;
     for(int ring = center_ring-1; ring <= center_ring+1; ring++) {
       float shift = (ring%2==0?0:1)/2.0/rank;
-      float color_shift = div_up(-3*ring, 2)/float(rank);
+      float color_shift = idiv(-3*ring, 2)/float(rank);
       float d = ring%2 == 0? alpha1 : alpha2;
       float t = (rotation + shift + d)*TAU;
       vec2 pos = pow(ring_dist, ring+zoom) * vec2(cos(t), sin(t)) + center;
@@ -83,7 +79,7 @@ void main()
     endless(rank1, 0, zoom*zoom_speed1, rot*rotate_speed1, vec2(0), 1.0);
     endless(rank2, 0, zoom*zoom_speed2, rot*rotate_speed2, vec2(0), 0.5);
     #ifdef DEBUG_RINGS
-    debug_rings = mod(1000+debug_rings, DEBUG_RINGS)/2/DEBUG_RINGS + 0.5;
+    debug_rings = mod(debug_rings, DEBUG_RINGS)/2/DEBUG_RINGS + 0.5;
     #else
     debug_rings = 1;
     #endif
