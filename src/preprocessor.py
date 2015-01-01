@@ -5,6 +5,7 @@ import re
 import os
 
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s+"([^"]+)"\s+$')
+ONCE_RE = re.compile(r'^\s*#\s*pragma\s+once\s+$')
 
 
 class Numerator(object):
@@ -24,25 +25,33 @@ class Numerator(object):
         return self._list
 
 
-def preprocess_one(text, files, fname):
+def preprocess_one(text, files, once, fname):
+    if fname in once:
+        return
     with open(fname, "r") as f:
         if files[fname] != 0:
             text.append("#line %d %d\n" % (1, files[fname]))
         for n, line in enumerate(f, 1):
+            match = ONCE_RE.match(line)
+            if match:
+                once.add(fname)
+                continue
             match = INCLUDE_RE.match(line)
             if match:
                 path = os.path.dirname(fname)
-                path = ("." if path == "" else path) + "/"
-                preprocess_one(text, files, path + match.groups()[0])
+                if path != "":
+                    path += "/"
+                preprocess_one(text, files, once, path + match.groups()[0])
                 text.append("#line %d %d\n" % (n, files[fname]))
-            else:
-                text.append(line)
+                continue
+            text.append(line)
 
 
 def preprocess(fname):
     text = []
+    once = set()
     files = Numerator()
-    preprocess_one(text, files, fname)
+    preprocess_one(text, files, once, fname)
     return ("".join(text), files.items())
 
 
