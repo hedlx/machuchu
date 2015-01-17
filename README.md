@@ -15,14 +15,14 @@ Usage
 * Run ./machuchu.
 * Click a "Load" button or press Ctrl+O and choose a shader file (.f).
 * Controls
-    * W, A, S, D, Middle/Right mouse button — pan a view
-    * C — position reset
-    * Period key  — zoom in
-    * Comma key — zoom out
+    * `w`, `a`, `s`, `d`, Middle/Right mouse button — pan a view
+    * `c` — position reset
+    * `,` — zoom out
+    * `.` — zoom in
     * Mouse wheel — zoom in/out
-    * V — zoom reset
-    * P — pause
-    * F — toggle a shader panel
-    * F10 — timer reset
-    * ESC — quit
+    * `v` — zoom reset
+    * `p` — pause
+    * `f` — toggle a shader panel
+    * `F10` — timer reset
+    * `ESC` — quit
 * The shader's code will be reloaded automatically if it changed.
