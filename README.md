@@ -9,7 +9,7 @@ Machuchu — a GLSL (OpenGL Shading Language) viewer.
 
 ![animated screenshot](http://i.imgur.com/KfJQcR2.gif)
 
-**Fig. 1.** Machuchu with `shaders/voronoi_hsv.f` loaded.
+**Fig. 1.** Machuchu with `shader/voronoi_hsv.f` loaded.
 
 ---
 
