@@ -7,7 +7,7 @@ vec2 V0(vec2 co) {
     return co;
 }
 
-8vec2 V1(vec2 co) {
+vec2 V1(vec2 co) {
     return vec2(sin(co.x), sin(co.y));
 }
 
