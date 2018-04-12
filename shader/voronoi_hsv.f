@@ -4,6 +4,7 @@ varying vec4 p;
 uniform float time;
 
 uniform bool draw_dots = false;
+uniform bool draw_borders = false; // looks ok if ether rank1 or rank2 is zero
 
 uniform int rank1 = 6, rank2 = 7;
 uniform int rotate_speed1 = 10, rotate_speed2 = -5;
@@ -22,6 +23,7 @@ uniform int zoom_speed1 = 0, zoom_speed2 = 0;
 
 float res_d = 1/0.;
 vec3 res_color = vec3(0,0,0);
+bool in_border = false;
 float debug_rings = 0;
 
 void add(vec2 pos, vec3 color, vec2 center)
@@ -43,8 +45,13 @@ void add(vec2 pos, vec3 color, vec2 center)
         }
         #endif
 
+        if (draw_borders &&
+            res_d != 1/0. &&
+            (res_d - d)/distance_from_center < 0.1)
+            in_border = true;
+
         res_d = d;
-        res_color = color;
+        res_color = color * (in_border?0.5:1);
     }
 }
 
@@ -63,9 +70,9 @@ void endless(int rank, float ring_dist, float zoom, float rotation, vec2 center,
 
     debug_rings += center_ring;
     for(int ring = center_ring-1; ring <= center_ring+1; ring++) {
-      float shift = (ring%2==0?0:1)/2.0/rank;
+      float shift = abs(ring)%2/2.0/rank;
       float color_shift = idiv(-3*ring, 2)/float(rank);
-      float d = ring%2 == 0? alpha1 : alpha2;
+      float d = abs(ring)%2 == 0? alpha1 : alpha2;
       float t = (rotation + shift + d)*TAU;
       vec2 pos = pow(ring_dist, ring+zoom) * vec2(cos(t), sin(t)) + center;
       add(pos, hsv2rgb(d+color_shift,sat, 1), center);
