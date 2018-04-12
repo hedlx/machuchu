@@ -12,6 +12,7 @@ vec3 hsv2rgb(float h, float s, float v) {
         return vec3(a + m, b + m, c + m)
 
     switch (int(h)) {
+        case 6:
         case 0: ret(c, x, 0);
         case 1: ret(x, c, 0);
         case 2: ret(0, c, x);
