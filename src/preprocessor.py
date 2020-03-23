@@ -5,7 +5,7 @@ import re
 import os
 
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s+"([^"]+)"\s+$')
-ONCE_RE = re.compile(r'^\s*#\s*pragma\s+once\s+$')
+ONCE_RE = re.compile(r"^\s*#\s*pragma\s+once\s+$")
 
 
 class Numerator(object):
@@ -57,15 +57,17 @@ def preprocess(fname):
 
 def main():
     import sys
+
     if len(sys.argv) != 2:
         print("Usage:", sys.argv[0], "FILE")
         exit(1)
     text, files = preprocess(sys.argv[1])
     print(text)
-    print('/* Used files:')
+    print("/* Used files:")
     for i, f in enumerate(files):
         print(" *  %d: %s" % (i, f))
     print(" */")
+
 
 if __name__ == "__main__":
     main()

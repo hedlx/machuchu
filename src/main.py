@@ -34,7 +34,7 @@ class GentleLineEdit(Qt.QLineEdit):
 
 class CoordUniform(object):
     def __init__(self):
-        self.x = self.y = self.z = (0., 0., 0.)
+        self.x = self.y = self.z = (0.0, 0.0, 0.0)
         self.size = (1, 1)
 
     def origin(self):
@@ -44,30 +44,30 @@ class CoordUniform(object):
     def zoom_reset(self):
         self.z = (0.0, 0.0, 0.0)
 
-    def add(self, x=0., y=0., z=0.):
-        f = lambda v, d: (v[0], v[1], v[2]+d)
+    def add(self, x=0.0, y=0.0, z=0.0):
+        f = lambda v, d: (v[0], v[1], v[2] + d)
         self.x = f(self.x, x)
         self.y = f(self.y, y)
         self.z = f(self.z, z)
 
     def move(self, x, y):
-        z = 2./(1.1**self.z[0])/self.size[1]
-        f = lambda v, d: (v[0]+d*z, v[1], v[2])
+        z = 2.0 / (1.1 ** self.z[0]) / self.size[1]
+        f = lambda v, d: (v[0] + d * z, v[1], v[2])
         self.x = f(self.x, x)
         self.y = f(self.y, y)
 
     def zoom(self, z, origin=None):
         if origin:
-            sx, sy = origin[0]-self.size[0]/2., origin[1]-self.size[1]/2.
+            sx, sy = origin[0] - self.size[0] / 2.0, origin[1] - self.size[1] / 2.0
         else:
             sx, sy = (0, 0)
         self.move(sx, -sy)
-        self.z = (self.z[0]+z, self.z[1], self.z[2])
+        self.z = (self.z[0] + z, self.z[1], self.z[2])
         self.move(-sx, sy)
 
     def update(self):
-        f = lambda v, s: (v[0]+v[1]/s, (v[1]*15 + v[2])/16, v[2])
-        z = 25*1.1**self.z[0]
+        f = lambda v, s: (v[0] + v[1] / s, (v[1] * 15 + v[2]) / 16, v[2])
+        z = 25 * 1.1 ** self.z[0]
         self.x = f(self.x, z)
         self.y = f(self.y, z)
         self.z = f(self.z, 2)
@@ -75,7 +75,7 @@ class CoordUniform(object):
     def items(self):
         yield "_x", self.x[0]
         yield "_y", self.y[0]
-        yield "_z", 1.1**self.z[0]
+        yield "_z", 1.1 ** self.z[0]
         yield "_aspect", self.size[0] / self.size[1]
 
 
@@ -107,8 +107,9 @@ class GLWidget(Qt.QGLWidget):
         self.coord = CoordUniform()
 
     def initializeGL(self):
-        self.vertexShader = MyGL.compileShader(self.vertexShaderData,
-                                               GL.GL_VERTEX_SHADER)
+        self.vertexShader = MyGL.compileShader(
+            self.vertexShaderData, GL.GL_VERTEX_SHADER
+        )
 
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
@@ -116,14 +117,14 @@ class GLWidget(Qt.QGLWidget):
 
     def paintGL(self):
         GL.glBegin(GL.GL_TRIANGLE_STRIP)
-        GL.glVertex3f(-1., -1., 0.)
-        GL.glVertex3f(1., -1., 0.)
-        GL.glVertex3f(-1., 1., 0.)
-        GL.glVertex3f(1., 1., 0.)
+        GL.glVertex3f(-1.0, -1.0, 0.0)
+        GL.glVertex3f(1.0, -1.0, 0.0)
+        GL.glVertex3f(-1.0, 1.0, 0.0)
+        GL.glVertex3f(1.0, 1.0, 0.0)
         GL.glEnd()
 
     def getFps(self):
-        return (len(self.times)-1) / (self.times[-1] - self.times[0])
+        return (len(self.times) - 1) / (self.times[-1] - self.times[0])
 
     def getUniforms(self):
         uniforms = {}
@@ -133,7 +134,7 @@ class GLWidget(Qt.QGLWidget):
             name, size, type_ = GL.glGetActiveUniform(self.program, i)
             name = bytes(name).split(b"\x00")[0].decode()
             loc = GL.glGetUniformLocation(self.program, name)
-            if name[0] == '_':  # FIXME: ignore uniforms from vertexShaderData
+            if name[0] == "_":  # FIXME: ignore uniforms from vertexShaderData
                 continue
             if size == 1 and type_ == GL.GL_INT:
                 arr = OpenGL.arrays.GLintArray.zeros([1])
@@ -217,6 +218,7 @@ class LineEditUniform(UniformBase):
             except ValueError:
                 return
             self._set_value(value)
+
         edit.textChanged.connect(l)
         self.init_widgets([label, edit])
 
@@ -255,7 +257,7 @@ class MainWindow(Qt.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.resize(800, 600)
-        self.setWindowTitle('PyGL')
+        self.setWindowTitle("PyGL")
         self.glWidget = GLWidget(self)
         self.setCentralWidget(self.glWidget)
         self.shaderDock, self.shaderLayout = self.initShaderDock()
@@ -274,7 +276,7 @@ class MainWindow(Qt.QMainWindow):
         self.timer.start()
         self.time = Qt.QTime()
         self.time.start()
-        self.time_uniform = 0.
+        self.time_uniform = 0.0
         self.timeron = True  # FIXME
         self.cursorLocPos = Qt.QPoint(0, 0)
 
@@ -359,11 +361,11 @@ class MainWindow(Qt.QMainWindow):
         for uni in self.uniforms.values():
             uni.hide()
         unpragmed = set(uniforms)
-        unpragmed.discard('time')
-        r = re.compile(r'^\s*#\s*pragma\s+machuchu\s+(.*)$', re.M)
+        unpragmed.discard("time")
+        r = re.compile(r"^\s*#\s*pragma\s+machuchu\s+(.*)$", re.M)
         for params in r.findall(data):
             params = re.split(r"\s+", params)
-            if len(params) == 4 and params[0] == 'slider':
+            if len(params) == 4 and params[0] == "slider":
                 name = params[1]
                 value = uniforms[name]
                 min, max = map(int, params[2:4])
@@ -374,8 +376,7 @@ class MainWindow(Qt.QMainWindow):
                 else:
                     if old is not None:
                         old.delete()
-                    self.uniforms[name] = SliderUniform(self, name, value,
-                                                        min, max)
+                    self.uniforms[name] = SliderUniform(self, name, value, min, max)
                 unpragmed.remove(name)
 
         for name in unpragmed:
@@ -394,8 +395,9 @@ class MainWindow(Qt.QMainWindow):
 
     def load(self):
         filename = Qt.QFileDialog.getOpenFileName(
-            self, directory="./shader", filter="Fragment shader (*.f)")
-        if filename[0] != '':
+            self, directory="./shader", filter="Fragment shader (*.f)"
+        )
+        if filename[0] != "":
             self.loadFile(filename[0])
 
     def reload(self):
@@ -415,8 +417,9 @@ class MainWindow(Qt.QMainWindow):
                 text = e.text
             else:
                 text = str(e)
-            mb = Qt.QMessageBox(Qt.QMessageBox.Warning, "Error loading shader",
-                                text, Qt.QMessageBox.Ok)
+            mb = Qt.QMessageBox(
+                Qt.QMessageBox.Warning, "Error loading shader", text, Qt.QMessageBox.Ok
+            )
             mb.exec_()
 
     def tick(self):
@@ -424,14 +427,14 @@ class MainWindow(Qt.QMainWindow):
             self.reload()
         if self.timeron:
             self.time_uniform += float(self.time.elapsed())
-            self.glWidget.setUniform('time', self.time_uniform)
+            self.glWidget.setUniform("time", self.time_uniform)
         self.time.start()
         self.glWidget.tick()
         self.setWindowTitle("{:d} fps".format(int(round(self.glWidget.getFps()))))
 
     def timer_reset(self):
         self.time_uniform = 0.0
-        self.glWidget.setUniform('time', self.time_uniform)
+        self.glWidget.setUniform("time", self.time_uniform)
 
     def toggleShaderDock(self):
         if self.shaderDock.isVisible():
@@ -494,15 +497,17 @@ class MainWindow(Qt.QMainWindow):
     def wheelEvent(self, e):
         d = e.angleDelta()
         if Qt.QApplication.keyboardModifiers() & Qt.Qt.ControlModifier:
-            self.glWidget.coord.zoom(d.y()/100, (e.pos().x(), e.pos().y()))
+            self.glWidget.coord.zoom(d.y() / 100, (e.pos().x(), e.pos().y()))
         else:
             self.glWidget.coord.move(x=-d.x(), y=d.y())
 
     def warpCursor(self):
         cursor = Qt.QCursor()
-        warp = lambda value, max: (value-1) % (max-2) + 1
-        newCursorLocPos = Qt.QPoint(warp(self.cursorLocPos.x(), self.width()),
-                                    warp(self.cursorLocPos.y(), self.height()))
+        warp = lambda value, max: (value - 1) % (max - 2) + 1
+        newCursorLocPos = Qt.QPoint(
+            warp(self.cursorLocPos.x(), self.width()),
+            warp(self.cursorLocPos.y(), self.height()),
+        )
         if newCursorLocPos != self.cursorLocPos:
             cursor.setPos(cursor.pos() + newCursorLocPos - self.cursorLocPos)
             self.cursorLocPos = newCursorLocPos
@@ -521,6 +526,7 @@ class MainWindow(Qt.QMainWindow):
             self.cursorLocPos = e.pos()
             self.warpCursor()
             self.glWidget.coord.move(d.x(), -d.y())
+
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 app = Qt.QApplication(sys.argv)
