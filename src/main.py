@@ -10,8 +10,8 @@ import signal
 import sys
 import time
 from OpenGL import GL
-import OpenGL.arrays
 import OpenGL.GL.shaders
+import MyGL
 from preprocessor import preprocess
 from updater import Updater
 import Qt
@@ -107,8 +107,8 @@ class GLWidget(Qt.QGLWidget):
         self.coord = CoordUniform()
 
     def initializeGL(self):
-        self.vertexShader = GL.shaders.compileShader(self.vertexShaderData,
-                                                     GL.GL_VERTEX_SHADER)
+        self.vertexShader = MyGL.compileShader(self.vertexShaderData,
+                                               GL.GL_VERTEX_SHADER)
 
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
@@ -131,8 +131,8 @@ class GLWidget(Qt.QGLWidget):
         count = GL.glGetProgramiv(self.program, GL.GL_ACTIVE_UNIFORMS)
         for i in range(count):
             name, size, type_ = GL.glGetActiveUniform(self.program, i)
+            name = bytes(name).split(b"\x00")[0].decode()
             loc = GL.glGetUniformLocation(self.program, name)
-            name = name.decode()
             if name[0] == '_':  # FIXME: ignore uniforms from vertexShaderData
                 continue
             if size == 1 and type_ == GL.GL_INT:
@@ -151,8 +151,7 @@ class GLWidget(Qt.QGLWidget):
         return uniforms, types
 
     def setFragmentShader(self, shader):
-        fragmentShader = GL.shaders.compileShader(shader,
-                                                  GL.GL_FRAGMENT_SHADER)
+        fragmentShader = MyGL.compileShader(shader, GL.GL_FRAGMENT_SHADER)
         program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
         GL.glUseProgram(program)
         self.program = program
@@ -411,14 +410,11 @@ class MainWindow(Qt.QMainWindow):
             self.glWidget.setFragmentShader(data)
             uniforms, types = self.glWidget.getUniforms()
             self.updateUniforms(data, uniforms, types)
-        except:
-            e = sys.exc_info()[1]
-            text = str(e)
-
-            if type(e) == RuntimeError and len(e.args) == 3 and \
-               e.args[2] == GL.GL_FRAGMENT_SHADER:
-                text = e.args[0]
-
+        except Exception as e:
+            if isinstance(e, MyGL.ShaderCompilationError):
+                text = e.text
+            else:
+                text = str(e)
             mb = Qt.QMessageBox(Qt.QMessageBox.Warning, "Error loading shader",
                                 text, Qt.QMessageBox.Ok)
             mb.exec_()
