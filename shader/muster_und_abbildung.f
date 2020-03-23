@@ -9,9 +9,8 @@ vec3 bool2col(bool b) {
     return b? vec3(0.5, 0.5, 1.0): vec3(1.);
 }
 
-bool eq(float x, float y, float t)
-{
-    return greaterThan(x+t, y) && lessThan(x-t,y);
+bool eq(float x, float y, float t) {
+    return (x+t > y) && (x-t < y);
 }
 
 ivec2 hexagon(vec2 p) {
