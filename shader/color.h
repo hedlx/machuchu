@@ -7,21 +7,15 @@ vec3 hsv2rgb(float h, float s, float v) {
     float c = v * s;
     float x = c * (1 - abs(mod(h, 2) - 1));
     float m = v - c;
-
-    #define ret(a, b, c)\
-        return vec3(a + m, b + m, c + m)
-
     switch (int(h)) {
         case 6:
-        case 0: ret(c, x, 0);
-        case 1: ret(x, c, 0);
-        case 2: ret(0, c, x);
-        case 3: ret(0, x, c);
-        case 4: ret(x, 0, c);
-        case 5: ret(c, 0, x);
+        case 0: return m + vec3(c, x, 0);
+        case 1: return m + vec3(x, c, 0);
+        case 2: return m + vec3(0, c, x);
+        case 3: return m + vec3(0, x, c);
+        case 4: return m + vec3(x, 0, c);
+        case 5: return m + vec3(c, 0, x);
     }
-
-    #undef ret
 }
 
 vec3 lab2xyz(float l, float a, float b) {
