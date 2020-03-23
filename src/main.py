@@ -6,6 +6,7 @@ from __future__ import print_function, division
 
 import collections
 import re
+import ctypes
 import signal
 import sys
 import time
@@ -79,23 +80,30 @@ class CoordUniform(object):
         yield "_aspect", self.size[0] / self.size[1]
 
 
-class GLWidget(Qt.QGLWidget):
+class GLWidget(Qt.QOpenGLWidget):
     vertexShaderData = """
-        #version 120
+        #version 130
 
         varying vec4 p;
+        out vec2 fragCoord;
 
         uniform float _aspect;
         uniform float _x = 0.;
         uniform float _y = 0.;
         uniform float _z = 1.;
 
+        in vec2 _position;
+
         void main() {
-            gl_Position = p = gl_Vertex;
+            // gl_Position = p = gl_Vertex;
+            p = vec4(_position.xy, 0, 0);
             p.x *= _aspect;
             p /= _z;
             p.x += _x;
             p.y += _y;
+
+            gl_Position = vec4(_position.xy, 0.0, 1.0);
+            fragCoord = p.xy;
         }
     """
 
@@ -107,6 +115,19 @@ class GLWidget(Qt.QGLWidget):
         self.coord = CoordUniform()
 
     def initializeGL(self):
+        vao = GL.glGenVertexArrays(1)
+        GL.glBindVertexArray(vao)
+
+        vbo = GL.glGenBuffers(1)
+        data = (GL.GLfloat * 8)(
+                -1.0, -1.0,
+                +1.0, -1.0,
+                -1.0, +1.0,
+                +1.0, +1.0,
+            )
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo)
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, ctypes.sizeof(data), data, GL.GL_STATIC_DRAW)
+
         self.vertexShader = MyGL.compileShader(
             self.vertexShaderData, GL.GL_VERTEX_SHADER
         )
@@ -116,12 +137,15 @@ class GLWidget(Qt.QGLWidget):
         self.coord.size = (width, height)
 
     def paintGL(self):
-        GL.glBegin(GL.GL_TRIANGLE_STRIP)
-        GL.glVertex3f(-1.0, -1.0, 0.0)
-        GL.glVertex3f(1.0, -1.0, 0.0)
-        GL.glVertex3f(-1.0, 1.0, 0.0)
-        GL.glVertex3f(1.0, 1.0, 0.0)
-        GL.glEnd()
+        if True:  # XXX
+            GL.glDrawArrays(GL.GL_TRIANGLE_STRIP, 0, 4);
+        else:
+            GL.glBegin(GL.GL_TRIANGLE_STRIP)
+            GL.glVertex2f(-1.0, -1.0)
+            GL.glVertex2f(1.0, -1.0)
+            GL.glVertex2f(-1.0, 1.0)
+            GL.glVertex2f(1.0, 1.0)
+            GL.glEnd()
 
     def getFps(self):
         return (len(self.times) - 1) / (self.times[-1] - self.times[0])
@@ -152,8 +176,16 @@ class GLWidget(Qt.QGLWidget):
         return uniforms, types
 
     def setFragmentShader(self, shader):
+        self.makeCurrent()
         fragmentShader = MyGL.compileShader(shader, GL.GL_FRAGMENT_SHADER)
         program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
+
+        GL.glBindFragDataLocation(program, 0, "fragColor")
+
+        positionAttrib = GL.glGetAttribLocation(program, "_position");
+        GL.glEnableVertexAttribArray(positionAttrib);
+        GL.glVertexAttribPointer(positionAttrib, 2, GL.GL_FLOAT, GL.GL_FALSE, 0, 0);
+
         GL.glUseProgram(program)
         self.program = program
         self.coord.size = (self.width(), self.height())
@@ -162,18 +194,19 @@ class GLWidget(Qt.QGLWidget):
 
     def setUniform(self, name, value):
         if self.program is not None:
+            self.makeCurrent()
             loc = GL.glGetUniformLocation(self.program, name)
             # TODO: coerce value to appropriate type
             if isinstance(value, float):
                 GL.glUniform1f(loc, value)
             if isinstance(value, (bool, int)):
-                GL.glUniform1i(loc, value)
+                GL.glUniform1i(loc, int(value))
 
     def tick(self):
         self.coord.update()
         for name, value in self.coord.items():
             self.setUniform(name, value)
-        self.updateGL()
+        self.update()
         self.times.append(time.time())
 
 
