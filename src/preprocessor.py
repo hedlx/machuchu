@@ -1,58 +1,56 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
 
 import re
 import os
 
-INCLUDE_RE = re.compile(r'^\s*#\s*include\s+"([^"]+)"\s+$')
-ONCE_RE = re.compile(r"^\s*#\s*pragma\s+once\s+$")
+INCLUDE_RE = re.compile(r'^\s*#\s*include\s+"([^"]+)"\s*$')
+ONCE_RE = re.compile(r"^\s*#\s*pragma\s+once\s*$")
+VERSION_RE = re.compile(r"^\s*#\s*version\s+")
 
 
-class Numerator(object):
-    def __init__(self):
-        self._hash = {}
-        self._list = []
-        self._cnt = 0
+class Preprocessor:
+    def __init__(self, fname):
+        self.text_lines = []
+        self.fnames = []
+        self.fcontents = []
+        self._once = set()
 
-    def __getitem__(self, item):
-        if item not in self._hash:
-            self._hash[item] = self._cnt
-            self._list.append(item)
-            self._cnt += 1
-        return self._hash[item]
+        self._one(fname)
+        self.text = "\n".join(self.text_lines)
 
-    def items(self):
-        return self._list
+    def _one(self, fname):
+        if fname in self._once:
+            return
+        contents = open(fname, "r").read().split("\n")
 
+        if fname not in self.fnames:
+            self.fnames.append(fname)
+            self.fcontents.append(contents)
+        findex = self.fnames.index(fname)
 
-def preprocess_one(text, files, once, fname):
-    if fname in once:
-        return
-    with open(fname, "r") as f:
-        if files[fname] != 0:
-            text.append("#line %d %d\n" % (1, files[fname]))
-        for n, line in enumerate(f, 1):
+        if findex != 0:
+            self.text_lines.append("#line %d %d" % (1, findex))
+
+        for n, line in enumerate(contents, 1):
             match = ONCE_RE.match(line)
             if match:
-                once.add(fname)
+                self._once.add(fname)
                 continue
             match = INCLUDE_RE.match(line)
             if match:
                 path = os.path.dirname(fname)
                 if path != "":
                     path += "/"
-                preprocess_one(text, files, once, path + match.groups()[0])
-                text.append("#line %d %d\n" % (n, files[fname]))
+                self._one(path + match.groups()[0])
+                self.text_lines.append("#line %d %d" % (n, findex))
                 continue
-            text.append(line)
-
-
-def preprocess(fname):
-    text = []
-    once = set()
-    files = Numerator()
-    preprocess_one(text, files, once, fname)
-    return ("".join(text), files.items())
+            match = VERSION_RE.match(line)
+            if match:
+                self.text_lines.append("/* %s */" % (line.rstrip("\n"),))
+                self.text_lines.insert(0, line)
+                self.text_lines.insert(1, "#line 1 0")
+                continue
+            self.text_lines.append(line)
 
 
 def main():
@@ -61,10 +59,10 @@ def main():
     if len(sys.argv) != 2:
         print("Usage:", sys.argv[0], "FILE")
         exit(1)
-    text, files = preprocess(sys.argv[1])
-    print(text)
+    p = Preprocessor(sys.argv[1])
+    print(p.text)
     print("/* Used files:")
-    for i, f in enumerate(files):
+    for i, f in enumerate(p.fnames):
         print(" *  %d: %s" % (i, f))
     print(" */")
 

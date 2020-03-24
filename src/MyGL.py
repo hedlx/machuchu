@@ -6,7 +6,7 @@ from OpenGL import GL
 
 class ShaderCompilationError(Exception):
     def __init__(self, text):
-        super().__init__(f"Shader compile failure: \n${text}")
+        super().__init__("Shader compile failure:\n{}".format(text))
         self.text = text
 
 

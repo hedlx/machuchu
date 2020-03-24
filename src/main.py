@@ -4,6 +4,7 @@
 
 from __future__ import print_function, division
 
+from html import escape
 import collections
 import re
 import signal
@@ -12,7 +13,7 @@ import time
 from OpenGL import GL
 import OpenGL.GL.shaders
 import MyGL
-from preprocessor import preprocess
+from preprocessor import Preprocessor
 from updater import Updater
 import Qt
 
@@ -253,6 +254,67 @@ class CheckBoxUniform(UniformBase):
         self.parent.glWidget.setUniform(self.name, self.value)
 
 
+def format_error(prep, err_text):
+    re_err_intel = re.compile(
+        r"""^
+        (?P<fno> [0-9]+):(?P<line> [0-9]+ )
+        \( (?P<extra> [0-9]+ ) \):\ # column?
+        (?P<kind> [^:]* ):\ #
+        (?P<text> .* )
+        $""",
+        re.X,
+    )
+    re_err_nvidia = re.compile(
+        r"""^
+        (?P<fno> [0-9]+)
+        \( (?P<line> [0-9]+ ) \)
+        \ :\ (?P<kind> warning | error )\ #
+        (?P<extra> C[0-9]+ ):\ # Error code
+        (?P<text> .* )
+        $""",
+        re.X,
+    )
+    result = []
+    prev = None
+    for err_line in err_text.split("\n"):
+        m = re_err_intel.match(str(err_line))
+        if not m:
+            m = re_err_nvidia.match(str(err_line))
+        if m:
+            m_fno, m_line = int(m["fno"]), int(m["line"])
+            curr = (m_fno, m_line)
+            if prev != curr:
+                prev = curr
+                result.append("\n")
+                result.append("{}:{}:\n".format(escape(prep.fnames[m_fno]), m_line))
+                result.append("%5d | " % (m_line,))
+                result.append(escape(prep.fcontents[m_fno][m_line - 1]))
+                result.append("\n")
+            if m["kind"] == "error":
+                result.append("<font color='#CC0000'>")
+            elif m["kind"] == "warning":
+                result.append("<font color='#75507B'>")
+            else:
+                result.append("<font>")
+            result.append(escape(m["kind"]))
+            result.append("</font>")
+            if "extra" in m.groupdict():
+                result.append("(%s)" % escape(m["extra"]))
+            result.append(": " + escape(m["text"]) + "\n")
+        else:
+            result.append(escape(err_line) + "\n")
+    result = "<pre>" + "".join(result) + "</pre>"
+    return result
+
+
+# TODO: remove this
+# prep = Preprocessor("./shader/shadertoy/ltSyRm_Sliding_mandelbrot.f")
+# print(format_error(prep, "0:6(24): error: `blablabla' undeclared"))
+# print()
+# print(format_error(prep, '0(6) : error C1008: undefined variable "blabla"'))
+# sys.exit(0)
+
+
 class MainWindow(Qt.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -407,19 +469,21 @@ class MainWindow(Qt.QMainWindow):
     def loadFile(self, filename):
         self.filename = filename
         try:
-            data, fnames = preprocess(filename)
-            self.updater = Updater(fnames)
-            self.glWidget.setFragmentShader(data)
+            prep = Preprocessor(filename)
+            self.updater = Updater(prep.fnames)
+            self.glWidget.setFragmentShader(prep.text)
             uniforms, types = self.glWidget.getUniforms()
-            self.updateUniforms(data, uniforms, types)
+            self.updateUniforms(prep.text, uniforms, types)
         except Exception as e:
             if isinstance(e, MyGL.ShaderCompilationError):
-                text = e.text
+                text = format_error(prep, e.text)
+                print(e.text)
             else:
-                text = str(e)
+                text = escape(str(e))
             mb = Qt.QMessageBox(
                 Qt.QMessageBox.Warning, "Error loading shader", text, Qt.QMessageBox.Ok
             )
+            mb.setTextFormat(Qt.Qt.RichText)
             mb.exec_()
 
     def tick(self):

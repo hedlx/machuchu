@@ -1,4 +1,3 @@
-#version 130
 #include "preamble.h"
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )

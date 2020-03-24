@@ -1,6 +1,5 @@
 // Created by jerky in 2020-03-22
 // https://www.shadertoy.com/view/WdlyDM
-#version 130
 #include "preamble.h"
 #define p pp
 

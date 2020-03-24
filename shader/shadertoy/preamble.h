@@ -1,3 +1,5 @@
+#version 130
+
 uniform float time;
 varying vec4 p;
 #define iTime (time/1000.)

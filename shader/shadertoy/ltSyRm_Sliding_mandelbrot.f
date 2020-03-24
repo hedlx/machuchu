@@ -1,6 +1,5 @@
 // Created by yqy in 2017-10-13
 // https://www.shadertoy.com/view/ltSyRm
-#version 130
 #include "preamble.h"
 
 const float param2 = 1024.f;
