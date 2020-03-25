@@ -287,9 +287,12 @@ def format_error(prep, err_text):
             if prev != curr:
                 prev = curr
                 result.append("\n")
-                result.append("{}:{}:\n".format(escape(prep.fnames[m_fno]), m_line))
-                result.append("%5d | " % (m_line,))
-                result.append(escape(prep.fcontents[m_fno][m_line - 1]))
+                try:
+                    result.append("{}:{}:\n".format(escape(prep.fnames[m_fno]), m_line))
+                    result.append("%5d | " % (m_line,))
+                    result.append(escape(prep.fcontents[m_fno][m_line - 1]))
+                except IndexError:
+                    result.append("??? {}:{}".format(m_fno, m_line))
                 result.append("\n")
             if m["kind"] == "error":
                 result.append("<font color='#CC0000'>")
