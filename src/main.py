@@ -281,6 +281,7 @@ def format_error(prep, err_text):
         if not m:
             m = re_err_nvidia.match(str(err_line))
         if m:
+            m = m.groupdict()
             m_fno, m_line = int(m["fno"]), int(m["line"])
             curr = (m_fno, m_line)
             if prev != curr:
@@ -298,7 +299,7 @@ def format_error(prep, err_text):
                 result.append("<font>")
             result.append(escape(m["kind"]))
             result.append("</font>")
-            if "extra" in m.groupdict():
+            if "extra" in m:
                 result.append("(%s)" % escape(m["extra"]))
             result.append(": " + escape(m["text"]) + "\n")
         else:
