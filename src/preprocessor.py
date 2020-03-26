@@ -5,11 +5,12 @@ import os
 
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s+"([^"]+)"\s*$')
 ONCE_RE = re.compile(r"^\s*#\s*pragma\s+once\s*$")
-VERSION_RE = re.compile(r"^\s*#\s*version\s+")
+VERSION_RE = re.compile(r"^\s*#\s*version\s+(.*)$")
 
 
 class Preprocessor:
     def __init__(self, fname):
+        self.version = None
         self.text_lines = []
         self.fnames = []
         self.fcontents = []
@@ -50,6 +51,7 @@ class Preprocessor:
                 self.text_lines.append("/* %s */" % (line,))
                 self.text_lines.insert(0, line)
                 self.text_lines.insert(1, "#line 0 0")
+                self.version = re.split(r" +", match.groups()[0])
                 continue
             self.text_lines.append(line)
 

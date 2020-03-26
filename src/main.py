@@ -74,29 +74,29 @@ class CoordUniform(object):
         self.z = f(self.z, 2)
 
     def items(self):
-        yield "_x", self.x[0]
-        yield "_y", self.y[0]
-        yield "_z", 1.1 ** self.z[0]
-        yield "_aspect", self.size[0] / self.size[1]
+        yield "machuchu_x", self.x[0]
+        yield "machuchu_y", self.y[0]
+        yield "machuchu_z", 1.1 ** self.z[0]
+        yield "machuchu_aspect", self.size[0] / self.size[1]
 
 
 class GLWidget(Qt.QGLWidget):
     vertexShaderData = """
-        #version 120
+        // #version 130 / #version 300 es
+        in vec2 machuchu_position;
+        out vec4 p;
 
-        varying vec4 p;
-
-        uniform float _aspect;
-        uniform float _x = 0.;
-        uniform float _y = 0.;
-        uniform float _z = 1.;
+        uniform float machuchu_aspect;
+        uniform float machuchu_x;
+        uniform float machuchu_y;
+        uniform float machuchu_z;
 
         void main() {
-            gl_Position = p = gl_Vertex;
-            p.x *= _aspect;
-            p /= _z;
-            p.x += _x;
-            p.y += _y;
+            gl_Position = p = vec4(machuchu_position, 0., 1.);
+            p.x *= machuchu_aspect;
+            p /= machuchu_z;
+            p.x += machuchu_x;
+            p.y += machuchu_y;
         }
     """
 
@@ -106,11 +106,6 @@ class GLWidget(Qt.QGLWidget):
         self.program = None
         self.times = collections.deque([0], maxlen=10)
         self.coord = CoordUniform()
-
-    def initializeGL(self):
-        self.vertexShader = MyGL.compileShader(
-            self.vertexShaderData, GL.GL_VERTEX_SHADER
-        )
 
     def resizeGL(self, width, height):
         GL.glViewport(0, 0, width, height)
@@ -135,7 +130,7 @@ class GLWidget(Qt.QGLWidget):
             name, size, type_ = GL.glGetActiveUniform(self.program, i)
             name = bytes(name).split(b"\x00")[0].decode()
             loc = GL.glGetUniformLocation(self.program, name)
-            if name[0] == "_":  # FIXME: ignore uniforms from vertexShaderData
+            if name.startswith("machuchu_"):
                 continue
             if size == 1 and type_ == GL.GL_INT:
                 arr = OpenGL.arrays.GLintArray.zeros([1])
@@ -152,9 +147,21 @@ class GLWidget(Qt.QGLWidget):
             types[name] = type_
         return uniforms, types
 
-    def setFragmentShader(self, shader):
+    def setFragmentShader(self, shader, version):
         fragmentShader = MyGL.compileShader(shader, GL.GL_FRAGMENT_SHADER)
-        program = GL.shaders.compileProgram(self.vertexShader, fragmentShader)
+        if version[1:2] == ["es"]:
+            vertexShader = "#version 300 es\n" + self.vertexShaderData
+        else:
+            vertexShader = "#version 130\n" + self.vertexShaderData
+        vertexShader = MyGL.compileShader(vertexShader, GL.GL_VERTEX_SHADER)
+
+        program = GL.shaders.compileProgram(vertexShader, fragmentShader, validate=False)
+
+        GL.glBindFragDataLocation(program, 0, "machuchu_fragColor")
+        positionAttrib = GL.glGetAttribLocation(program, "machuchu_position")
+        GL.glEnableVertexAttribArray(positionAttrib);
+        GL.glVertexAttribPointer(positionAttrib, 2, GL.GL_FLOAT, GL.GL_FALSE, 0, 0);
+
         GL.glUseProgram(program)
         self.program = program
         self.coord.size = (self.width(), self.height())
@@ -475,7 +482,7 @@ class MainWindow(Qt.QMainWindow):
         try:
             prep = Preprocessor(filename)
             self.updater = Updater(prep.fnames)
-            self.glWidget.setFragmentShader(prep.text)
+            self.glWidget.setFragmentShader(prep.text, prep.version)
             uniforms, types = self.glWidget.getUniforms()
             self.updateUniforms(prep.text, uniforms, types)
         except Exception as e:
