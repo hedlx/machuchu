@@ -11,6 +11,7 @@ VERSION_RE = re.compile(r"^\s*#\s*version\s+(.*)$")
 class Preprocessor:
     def __init__(self, fname):
         self.version = None
+        self._shift = 0
         self.text_lines = []
         self.fnames = []
         self.fcontents = []
@@ -30,9 +31,9 @@ class Preprocessor:
         findex = self.fnames.index(fname)
 
         if findex != 0:
-            self.text_lines.append("#line %d %d /* %s */" % (0, findex, fname))
+            self.text_lines.append("#line %d %d /* %s */" % (self._shift, findex, fname))
 
-        for n, line in enumerate(contents, 1):
+        for n, line in enumerate(contents):
             match = ONCE_RE.match(line)
             if match:
                 self.text_lines.append("/* %s */" % (line,))
@@ -44,14 +45,15 @@ class Preprocessor:
                 if path != "":
                     path += "/"
                 self._one(path + match.groups()[0])
-                self.text_lines.append("#line %d %d /* %s:%d */" % (n, findex, fname, n))
+                self.text_lines.append("#line %d %d /* %s:%d */" % (self._shift+n+1, findex, fname, n+1))
                 continue
             match = VERSION_RE.match(line)
             if match:
+                self.version = re.split(r" +", match.groups()[0])
+                self._shift = int(self.version[1:2] == ["es"])
                 self.text_lines.append("/* %s */" % (line,))
                 self.text_lines.insert(0, line)
-                self.text_lines.insert(1, "#line 0 0")
-                self.version = re.split(r" +", match.groups()[0])
+                self.text_lines.insert(1, "#line %d 0" % (self._shift,))
                 continue
             self.text_lines.append(line)
 
