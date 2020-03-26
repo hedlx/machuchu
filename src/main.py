@@ -269,9 +269,14 @@ class SliderUniform(UniformBase):
         super(SliderUniform, self).__init__(parent, name, value)
         self.slider = Qt.QSlider(Qt.Qt.Horizontal)
         self.slider.setValue(value)
+        self.label = Qt.QLabel("%s: %s" % (name, value))
         self.update(min, max)
         self.slider.valueChanged.connect(lambda x: self._set_value(x))
-        self.init_widgets([Qt.QLabel(name), self.slider])
+        self.init_widgets([self.label, self.slider])
+
+    def _set_value(self, x):
+        super()._set_value(x)
+        self.label.setText("%s: %s" % (self.name, x))
 
     def update(self, min, max):
         self.slider.setMinimum(min)
