@@ -1,7 +1,7 @@
 #pragma once
 
-const float PI = radians(180);
-const float TAU = radians(360);
+const float PI = radians(180.);
+const float TAU = radians(360.);
 
 #define div(a, b) int((a) / (b))
 #define sqr(a) ((a) * (a))
@@ -15,6 +15,8 @@ float add2 (vec2 a) { return a.x + a.y; }
 float sub2 (vec2 a) { return a.x - a.y; }
 bool  bxor2(bvec2 a) { return a.x ^^ a.y; }
 vec2  flip2(vec2 a) { return vec2(a.y, a.x); }
+
+float length2(vec2 p) { return p.x * p.x + p.y * p.y; }
 
 vec2 cx_conj(vec2 a) { return vec2(a.x, -a.y); }
 vec2 cx_inv (vec2 a) { return cx_conj(a) / add2(a*a); }
