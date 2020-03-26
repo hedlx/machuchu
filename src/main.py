@@ -387,14 +387,21 @@ class MainWindow(Qt.QMainWindow):
         shaderDock = Qt.QDockWidget()
         shaderLayout = Qt.QVBoxLayout()
         widget = Qt.QWidget()
+        scrollarea = Qt.QScrollArea()
+
         widget.setLayout(shaderLayout)
-        shaderDock.setWidget(widget)
+        scrollarea.setWidgetResizable(True)
+        scrollarea.setFrameShape(Qt.QFrame.NoFrame);
+        scrollarea.setWidget(widget)
+        shaderDock.setWidget(scrollarea)
 
         loadButton = Qt.QPushButton("Load")
         loadButton.clicked.connect(self.load)
         shaderLayout.addWidget(loadButton)
 
         shaderLayout.addStretch(0)
+        shaderLayout.setContentsMargins(0, 0, 0, 0)
+        shaderLayout.setSpacing(1)
         return shaderDock, shaderLayout
 
     def initRenderDock(self):
