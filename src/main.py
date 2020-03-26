@@ -36,6 +36,9 @@ class GentleLineEdit(Qt.QLineEdit):
 class CoordUniform(object):
     def __init__(self):
         self.x = self.y = self.z = (0.0, 0.0, 0.0)
+        self.mouse_pressed = False
+        self.mouse_i = None
+        self.mouse_f = self.mouse_f_start = (float('nan'), float('nan'))
         self.size = (1, 1)
 
     def origin(self):
@@ -66,18 +69,41 @@ class CoordUniform(object):
         self.z = (self.z[0] + z, self.z[1], self.z[2])
         self.move(-sx, sy)
 
+    def translate(self, x, y):
+        z = 2.0 / (1.1 ** self.z[0]) / self.size[1]
+        sx = self.x[0] + (x - self.size[0] / 2.0) * z
+        sy = self.y[0] - (y - self.size[1] / 2.0) * z
+        return sx, sy
+
+    def mouse_down(self, x, y):
+        self.mouse_pressed = True
+        self.mouse_i = (x, y)
+        self.mouse_f = self.mouse_f_start = self.translate(x, y)
+
+    def mouse_move(self, x, y):
+        self.mouse_pressed = True
+        self.mouse_i = (x, y)
+        self.mouse_f = self.translate(x, y)
+
+    def mouse_up(self):
+        self.mouse_pressed = False
+
     def update(self):
         f = lambda v, s: (v[0] + v[1] / s, (v[1] * 15 + v[2]) / 16, v[2])
         z = 25 * 1.1 ** self.z[0]
         self.x = f(self.x, z)
         self.y = f(self.y, z)
         self.z = f(self.z, 2)
+        if self.mouse_i is not None and self.mouse_pressed:
+            self.mouse_f = self.translate(*self.mouse_i)
 
     def items(self):
         yield "machuchu_x", self.x[0]
         yield "machuchu_y", self.y[0]
         yield "machuchu_z", 1.1 ** self.z[0]
         yield "machuchu_aspect", self.size[0] / self.size[1]
+        yield "machuchu_click", self.mouse_pressed
+        yield "machuchu_mouse", (*self.mouse_f, *self.mouse_f_start)
 
 
 class GLWidget(Qt.QGLWidget):
@@ -178,6 +204,8 @@ class GLWidget(Qt.QGLWidget):
                 GL.glUniform1f(loc, value)
             if isinstance(value, (bool, int)):
                 GL.glUniform1i(loc, value)
+            if isinstance(value, tuple) and len(value) == 4:
+                GL.glUniform4f(loc, *value)
 
     def tick(self):
         self.coord.update()
@@ -590,6 +618,8 @@ class MainWindow(Qt.QMainWindow):
             self.cursorLocPos = newCursorLocPos
 
     def mousePressEvent(self, e):
+        if e.buttons() == Qt.Qt.LeftButton:
+            self.glWidget.coord.mouse_down(e.pos().x(), e.pos().y())
         if e.button() == Qt.Qt.MidButton or e.button() == Qt.Qt.RightButton:
             self.cursorLocPos = e.pos()
         grabber = self.keyboardGrabber()
@@ -597,7 +627,12 @@ class MainWindow(Qt.QMainWindow):
             grabber.releaseKeyboard()
             grabber.clearFocus()
 
+    def mouseReleaseEvent(self, e):
+        self.glWidget.coord.mouse_up()
+
     def mouseMoveEvent(self, e):
+        if e.buttons() == Qt.Qt.LeftButton:
+            self.glWidget.coord.mouse_move(e.pos().x(), e.pos().y())
         if e.buttons() == Qt.Qt.MidButton or e.buttons() == Qt.Qt.RightButton:
             d = self.cursorLocPos - e.pos()
             self.cursorLocPos = e.pos()

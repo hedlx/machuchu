@@ -1,7 +1,6 @@
 // Created by jerky in 2020-03-22
 // https://www.shadertoy.com/view/WdlyDM
 #include "preamble.h"
-#define p pp
 
 // This is free and unencumbered software released into the public domain.
 // https://unlicense.org/UNLICENSE
