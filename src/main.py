@@ -539,7 +539,7 @@ class MainWindow(Qt.QMainWindow):
             self.reload()
         if self.timeron:
             self.time_uniform += float(self.time.elapsed())
-            self.glWidget.setUniform("time", self.time_uniform)
+        self.glWidget.setUniform("time", self.time_uniform)
         self.time.start()
         self.glWidget.tick()
         self.setWindowTitle("{:d} fps".format(int(round(self.glWidget.getFps()))))
