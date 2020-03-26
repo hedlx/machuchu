@@ -1,6 +1,6 @@
 #version 330
 
-varying vec4 p;
+in vec2 p;
 
 void main()
 {

@@ -1,6 +1,6 @@
 #version 130
 
-varying vec4 p;
+in vec2 p;
 
 uniform float time;
 //niform float s = 1.;
@@ -30,7 +30,7 @@ vec4 hsv2rgb(float h, float s, float v)
 
 void main()
 {
-    vec4 pp = p;
+    vec2 pp = p;
     pp.x = -(pp.x + 1.) / 2.;
     float t = (time / 10000.);
     pp.y = (pp.y - 1.) / 2;

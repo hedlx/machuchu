@@ -1,6 +1,6 @@
 #version 120
 
-varying vec4 p;
+varying vec2 p;
 
 uniform bool transparent;
 

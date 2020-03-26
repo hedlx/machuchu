@@ -1,8 +1,6 @@
-// vim: set ft=c:
-
 #version 130
 
-varying vec4 p;
+in vec2 p;
 
 uniform float time;
 

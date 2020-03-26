@@ -1,6 +1,6 @@
 #version 130
 
-varying vec4 p;
+in vec2 p;
 uniform float time;
 
 uniform bool draw_dots = false;
@@ -30,7 +30,7 @@ void add(vec2 pos, vec3 color, vec2 center)
 {
     vec2 pos2 = pos;
     float distance_from_center = sqr(p.x-center.x) + sqr(p.y-center.y);
-    pos -= p.xy;
+    pos -= p;
     pos *= pos;
     float d = pos.x+pos.y;
     if(res_d > d) {
@@ -61,7 +61,7 @@ void endless(int rank, float ring_dist, float zoom, float rotation, vec2 center,
     if(ring_dist == 0)
         ring_dist = (1 + sin(PI/rank)) / cos(PI/rank);
     zoom *= rank;
-    vec2 p = p.xy - center;
+    vec2 p = p - center;
 
     int center_ring = int(floor( log(sqr(p.x)+sqr(p.y))/2/log(ring_dist) - zoom));
     float alpha = (atan(p.y, p.x)/TAU - rotation)*rank;

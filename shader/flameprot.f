@@ -1,6 +1,6 @@
 #version 130
 
-varying vec4 p;
+in vec2 p;
 uniform float time;
 
 vec2 V0(vec2 co) {
@@ -39,7 +39,7 @@ void main() {
     float c = .0;
     vec3 tx = vec3(1, 3, 2);
     vec3 ty = vec3(3, 2, 2);
-    vec2 co = vec2(dot(tx, vec3(p.xy, 1)),
-                   dot(ty, vec3(p.xy, 1)));
+    vec2 co = vec2(dot(tx, vec3(p, 1)),
+                   dot(ty, vec3(p, 1)));
     gl_FragColor = vec4(V(1, co), 0, 0);
 }

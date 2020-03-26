@@ -2,7 +2,7 @@
 
 precision mediump float;
 
-in vec4 p;
+in vec2 p;
 uniform float time;
 out vec4 machuchu_FragColor;
 

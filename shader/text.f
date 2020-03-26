@@ -1,6 +1,6 @@
 #version 130
 
-varying vec4 p;
+in vec2 p;
 
 uniform int val1 = 0;
 uniform int val2 = 3;
@@ -13,9 +13,9 @@ uniform int val2 = 3;
 
 void main() {
     float c =
-        + text_int(p.xy*5. + vec2(0, 0), val1)
-        + text_int(p.xy*5. + vec2(0, 1), val2)
-        + text_int(p.xy*5. + vec2(0, 2), imod(val1, val2))
+        + text_int(p*5. + vec2(0, 0), val1)
+        + text_int(p*5. + vec2(0, 1), val2)
+        + text_int(p*5. + vec2(0, 2), imod(val1, val2))
     ;
     gl_FragColor = vec4(c);
 }

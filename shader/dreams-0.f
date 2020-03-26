@@ -2,7 +2,6 @@
 
 #include "color.h"
 
-varying vec4 p;
 uniform float time;
 
 float speed = 0.001f;

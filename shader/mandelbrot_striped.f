@@ -1,6 +1,6 @@
 #version 130
 
-varying vec4 p;
+in vec2 p;
 
 uniform int depth = 64;
 #pragma machuchu slider depth 2 512
@@ -63,9 +63,9 @@ float q()
 
 void main()
 {
-    vec4 pp = p;
+    vec2 pp = p;
     pp.x = p.x * 1.5 - 0.5;
     pp.y *= 1.5;
-    float f = striped_mandel(pp.xy, -time/1000, 4, 1, depth);
+    float f = striped_mandel(pp, -time/1000, 4, 1, depth);
     gl_FragColor = vec4(select_color(f), 1);
 }

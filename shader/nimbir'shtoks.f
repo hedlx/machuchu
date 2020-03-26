@@ -1,6 +1,6 @@
 #version 120
 
-varying vec4 p;
+varying vec2 p;
 
 uniform float time;
 
@@ -27,11 +27,11 @@ void main()
 {
     float t = (time / 10000.) - int(time / 10000.);
 #if 0
-    float p = line(vec2(-t, -t), vec2(t, t), p.xy);
+    float p = line(vec2(-t, -t), vec2(t, t), p);
 #else
     vec2 xy = vec2(sin(t * PI),cos(t * PI));
     float k = 0.7;
-    float p = line(-xy * k, xy * k, p.xy);
+    float p = line(-xy * k, xy * k, p);
 #endif
     gl_FragColor = vec4(p, p, p, 1.);
 }

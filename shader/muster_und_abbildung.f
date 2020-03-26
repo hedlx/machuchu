@@ -2,7 +2,7 @@
 
 #include "lib.h"
 
-varying vec4 p;
+in vec2 p;
 
 // misc functions {{{
 vec3 bool2col(bool b) {
@@ -123,5 +123,5 @@ vec2 transform_(vec2 i) {
 // }}}
 
 void main() {
-    gl_FragColor = vec4(pattern_(transform_(p.xy)), 1.0);
+    gl_FragColor = vec4(pattern_(transform_(p)), 1.0);
 }

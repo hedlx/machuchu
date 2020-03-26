@@ -84,7 +84,7 @@ class GLWidget(Qt.QGLWidget):
     vertexShaderData = """
         // #version 130 / #version 300 es
         in vec2 machuchu_position;
-        out vec4 p;
+        out vec2 p;
 
         uniform float machuchu_aspect;
         uniform float machuchu_x;
@@ -92,7 +92,9 @@ class GLWidget(Qt.QGLWidget):
         uniform float machuchu_z;
 
         void main() {
-            gl_Position = p = vec4(machuchu_position, 0., 1.);
+            gl_Position = vec4(machuchu_position, 0., 1.);
+
+            p = machuchu_position;
             p.x *= machuchu_aspect;
             p /= machuchu_z;
             p.x += machuchu_x;
