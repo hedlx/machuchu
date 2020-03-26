@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+#! nix-shell -pi bash
+#! nix-shell "python3.withPackages (p:[p.pyopengl p.pyqt5])"
+#! nix-shell "qt5.env \"qt-minimal${qt5.qtbase.version}\" []"
+#! nix-shell jq curl
+
+set -e
+shopt -s nullglob
+
+if [[ $1 =~ ^[a-zA-Z0-9]+$ ]]; then
+	id=$1
+elif [[ $1 =~ ^(https?://)?(www.)?shadertoy.com/view/([a-zA-Z0-9]+)$ ]]; then
+	id=${BASH_REMATCH[3]}
+	echo $id
+else
+	echo what
+	exit 1
+fi
+
+key=Bt8K4N
+
+mkdir -p shader/shadertoy
+
+F=( ./shader/shadertoy/"${id}"_*.f )
+
+j() {
+	jq -r .Shader"$1" <<< $json
+}
+
+if ! [ "${F[*]}" ]; then
+	json=$(curl "https://www.shadertoy.com/api/v1/shaders/$id?key=$key")
+	[ "$json" ] && [ "$(j .Error)" == null ]
+	name=$(j .info.username)_$(j .info.name)
+	name=${name// /_}
+	name=${name//\//_}
+
+	F=( "./shader/shadertoy/${id}_$name.f" )
+
+	{
+		echo "// Created by $(j .info.username) in $(date -Idate -ud "+@$(j .info.date)")"
+		echo "// https://www.shadertoy.com/view/$id"
+		echo '#include "../shadertoy.h"'
+		echo 
+		j '.renderpass[0].code'
+	} > ${F[0]}
+fi
+
+echo "${F[0]}"
+./machuchu "${F[0]}"
