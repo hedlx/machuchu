@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #! nix-shell -pi bash
-#! nix-shell "python3.withPackages (p:[p.pyopengl p.pyqt5])"
+#! nix-shell "python3.withPackages (p:[p.pyopengl p.pyqt5 p.pyside2])"
 #! nix-shell "qt5.env \"qt-minimal${qt5.qtbase.version}\" []"
 #! nix-shell jq curl
 
