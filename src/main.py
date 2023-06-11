@@ -38,7 +38,7 @@ class CoordUniform(object):
         self.x = self.y = self.z = (0.0, 0.0, 0.0)
         self.mouse_pressed = False
         self.mouse_i = None
-        self.mouse_f = self.mouse_f_start = (float('nan'), float('nan'))
+        self.mouse_f = self.mouse_f_start = (float("nan"), float("nan"))
         self.size = (1, 1)
 
     def origin(self):
@@ -62,7 +62,10 @@ class CoordUniform(object):
 
     def zoom(self, z, origin=None):
         if origin:
-            sx, sy = origin[0] - self.size[0] / 2.0, origin[1] - self.size[1] / 2.0
+            sx, sy = (
+                origin[0] - self.size[0] / 2.0,
+                origin[1] - self.size[1] / 2.0,
+            )
         else:
             sx, sy = (0, 0)
         self.move(sx, -sy)
@@ -183,12 +186,16 @@ class GLWidget(Qt.QGLWidget):
             vertexShader = "#version 130\n" + self.vertexShaderData
         vertexShader = MyGL.compileShader(vertexShader, GL.GL_VERTEX_SHADER)
 
-        program = GL.shaders.compileProgram(vertexShader, fragmentShader, validate=False)
+        program = GL.shaders.compileProgram(
+            vertexShader, fragmentShader, validate=False
+        )
 
         GL.glBindFragDataLocation(program, 0, "machuchu_fragColor")
         positionAttrib = GL.glGetAttribLocation(program, "machuchu_position")
-        GL.glEnableVertexAttribArray(positionAttrib);
-        GL.glVertexAttribPointer(positionAttrib, 2, GL.GL_FLOAT, GL.GL_FALSE, 0, 0);
+        GL.glEnableVertexAttribArray(positionAttrib)
+        GL.glVertexAttribPointer(
+            positionAttrib, 2, GL.GL_FLOAT, GL.GL_FALSE, 0, 0
+        )
 
         GL.glUseProgram(program)
         self.program = program
@@ -330,7 +337,9 @@ def format_error(prep, err_text):
                 prev = curr
                 result.append("\n")
                 try:
-                    result.append("{}:{}:\n".format(escape(prep.fnames[m_fno]), m_line))
+                    result.append(
+                        "{}:{}:\n".format(escape(prep.fnames[m_fno]), m_line)
+                    )
                     result.append("%5d | " % (m_line,))
                     result.append(escape(prep.fcontents[m_fno][m_line - 1]))
                 except IndexError:
@@ -396,7 +405,7 @@ class MainWindow(Qt.QMainWindow):
 
         widget.setLayout(shaderLayout)
         scrollarea.setWidgetResizable(True)
-        scrollarea.setFrameShape(Qt.QFrame.NoFrame);
+        scrollarea.setFrameShape(Qt.QFrame.NoFrame)
         scrollarea.setWidget(widget)
         shaderDock.setWidget(scrollarea)
 
@@ -491,7 +500,9 @@ class MainWindow(Qt.QMainWindow):
                 else:
                     if old is not None:
                         old.delete()
-                    self.uniforms[name] = SliderUniform(self, name, value, min, max)
+                    self.uniforms[name] = SliderUniform(
+                        self, name, value, min, max
+                    )
                 unpragmed.remove(name)
 
         for name in unpragmed:
@@ -534,7 +545,10 @@ class MainWindow(Qt.QMainWindow):
             else:
                 text = escape(str(e))
             mb = Qt.QMessageBox(
-                Qt.QMessageBox.Warning, "Error loading shader", text, Qt.QMessageBox.Ok
+                Qt.QMessageBox.Warning,
+                "Error loading shader",
+                text,
+                Qt.QMessageBox.Ok,
             )
             mb.setTextFormat(Qt.Qt.RichText)
             mb.exec_()
@@ -547,7 +561,9 @@ class MainWindow(Qt.QMainWindow):
         self.glWidget.setUniform("time", self.time_uniform)
         self.time.start()
         self.glWidget.tick()
-        self.setWindowTitle("{:d} fps".format(int(round(self.glWidget.getFps()))))
+        self.setWindowTitle(
+            "{:d} fps".format(int(round(self.glWidget.getFps())))
+        )
 
     def timer_reset(self):
         self.time_uniform = 0.0

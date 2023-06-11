@@ -31,7 +31,9 @@ class Preprocessor:
         findex = self.fnames.index(fname)
 
         if findex != 0:
-            self.text_lines.append("#line %d %d /* %s */" % (self._shift, findex, fname))
+            self.text_lines.append(
+                "#line %d %d /* %s */" % (self._shift, findex, fname)
+            )
 
         for n, line in enumerate(contents):
             match = ONCE_RE.match(line)
@@ -45,7 +47,10 @@ class Preprocessor:
                 if path != "":
                     path += "/"
                 self._one(path + match.groups()[0])
-                self.text_lines.append("#line %d %d /* %s:%d */" % (self._shift+n+1, findex, fname, n+1))
+                self.text_lines.append(
+                    "#line %d %d /* %s:%d */"
+                    % (self._shift + n + 1, findex, fname, n + 1)
+                )
                 continue
             match = VERSION_RE.match(line)
             if match:
