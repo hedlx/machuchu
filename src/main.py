@@ -8,6 +8,7 @@ from html import escape
 import collections
 import re
 import ctypes
+import traceback
 import signal
 import sys
 import time
@@ -400,6 +401,30 @@ class MainWindow(Qt.QMainWindow):
         self.renderDock, self.renderLayout = self.initRenderDock()
         self.addDockWidget(Qt.Qt.LeftDockWidgetArea, self.renderDock)
 
+        self.label = Qt.QLabel()
+        self.label.setParent(self.centralWidget())
+        self.label.setStyleSheet(
+            """
+            QLabel {
+                color: white;
+                font-size: 20px;
+                font-weight: bold;
+                background-color: rgba(0, 0, 0, 127);
+            }
+            """
+        )
+        self.label.move(32, 32)
+        self.label.setWordWrap(True)
+        self.label.hide()
+
+        # call a function on resize
+        self.glWidget.resized.connect(
+            lambda: self.label.resize(
+                self.glWidget.width() - self.label.pos().x() * 2,
+                self.glWidget.height() - self.label.pos().y() * 2,
+            )
+        )
+
         self.uniforms = {}
         self.filename = None
         self.updater = None
@@ -549,6 +574,7 @@ class MainWindow(Qt.QMainWindow):
 
     def loadFile(self, filename):
         self.filename = filename
+        self.label.hide()
         try:
             prep = Preprocessor(filename)
             self.updater = Updater(prep.fnames)
@@ -557,18 +583,14 @@ class MainWindow(Qt.QMainWindow):
             self.updateUniforms(prep.text, uniforms, types)
         except Exception as e:
             if isinstance(e, MyGL.ShaderCompilationError):
-                text = format_error(prep, e.text)
+                self.label.setTextFormat(Qt.Qt.RichText)
+                self.label.setText(format_error(prep, e.text))
                 print(e.text)
             else:
-                text = escape(str(e))
-            mb = Qt.QMessageBox(
-                Qt.QMessageBox.Warning,
-                "Error loading shader",
-                text,
-                Qt.QMessageBox.Ok,
-            )
-            mb.setTextFormat(Qt.Qt.RichText)
-            mb.exec_()
+                self.label.setTextFormat(Qt.Qt.PlainText)
+                self.label.setText(traceback.format_exc())
+                print(traceback.format_exc())
+            self.label.show()
 
     def tick(self):
         if self.updater and self.updater.check():
