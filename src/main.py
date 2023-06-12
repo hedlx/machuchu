@@ -7,11 +7,12 @@ from __future__ import print_function, division
 from html import escape
 import collections
 import re
+import ctypes
 import signal
 import sys
 import time
 from OpenGL import GL
-import OpenGL.GL.shaders
+from OpenGL.GL import shaders as GL_shaders
 import MyGL
 from preprocessor import Preprocessor
 from updater import Updater
@@ -109,7 +110,7 @@ class CoordUniform(object):
         yield "machuchu_mouse", (*self.mouse_f, *self.mouse_f_start)
 
 
-class GLWidget(Qt.QGLWidget):
+class GLWidget(Qt.QOpenGLWidget):
     vertexShaderData = """
         // #version 130 / #version 300 es
         in vec2 machuchu_position;
@@ -143,42 +144,39 @@ class GLWidget(Qt.QGLWidget):
         self.coord.size = (width, height)
 
     def paintGL(self):
-        GL.glBegin(GL.GL_TRIANGLE_STRIP)
-        GL.glVertex3f(-1.0, -1.0, 0.0)
-        GL.glVertex3f(1.0, -1.0, 0.0)
-        GL.glVertex3f(-1.0, 1.0, 0.0)
-        GL.glVertex3f(1.0, 1.0, 0.0)
-        GL.glEnd()
+        GL.glDrawArrays(GL.GL_TRIANGLE_STRIP, 0, 4)
 
     def getFps(self):
         return (len(self.times) - 1) / (self.times[-1] - self.times[0])
 
     def getUniforms(self):
+        self.makeCurrent()
         uniforms = {}
         types = {}
         count = GL.glGetProgramiv(self.program, GL.GL_ACTIVE_UNIFORMS)
+        iparams = ctypes.c_int()
+        fparams = ctypes.c_float()
         for i in range(count):
-            name, size, type_ = GL.glGetActiveUniform(self.program, i)
-            name = bytes(name).split(b"\x00")[0].decode()
+            name, _, type_ = GL.glGetActiveUniform(self.program, i)
             loc = GL.glGetUniformLocation(self.program, name)
-            if name.startswith("machuchu_"):
+            if name.startswith(b"machuchu_"):
                 continue
-            if size == 1 and type_ == GL.GL_INT:
-                arr = OpenGL.arrays.GLintArray.zeros([1])
-                GL.glGetUniformiv(self.program, loc, arr)
-                uniforms[name] = arr[0]
-            if size == 1 and type_ == GL.GL_FLOAT:
-                arr = OpenGL.arrays.GLfloatArray.zeros([1])
-                GL.glGetUniformfv(self.program, loc, arr)
-                uniforms[name] = arr[0]
-            if size == 1 and type_ == GL.GL_BOOL:
-                arr = OpenGL.arrays.GLintArray.zeros([1])
-                GL.glGetUniformiv(self.program, loc, arr)
-                uniforms[name] = arr[0]
+            name = name.decode("utf-8")  # TODO: remove?
+            if type_ == GL.GL_INT:
+                GL.glGetUniformiv(self.program, loc, iparams)
+                uniforms[name] = iparams.value
+            elif type_ == GL.GL_FLOAT:
+                GL.glGetUniformfv(self.program, loc, fparams)
+                uniforms[name] = fparams.value
+            elif type_ == GL.GL_BOOL:
+                GL.glGetUniformiv(self.program, loc, iparams)
+                uniforms[name] = iparams.value
             types[name] = type_
         return uniforms, types
 
     def setFragmentShader(self, shader, version):
+        self.makeCurrent()
+
         fragmentShader = MyGL.compileShader(shader, GL.GL_FRAGMENT_SHADER)
         if version[1:2] == ["es"]:
             vertexShader = "#version 300 es\n" + self.vertexShaderData
@@ -186,7 +184,7 @@ class GLWidget(Qt.QGLWidget):
             vertexShader = "#version 130\n" + self.vertexShaderData
         vertexShader = MyGL.compileShader(vertexShader, GL.GL_VERTEX_SHADER)
 
-        program = GL.shaders.compileProgram(
+        program = GL_shaders.compileProgram(
             vertexShader, fragmentShader, validate=False
         )
 
@@ -203,7 +201,26 @@ class GLWidget(Qt.QGLWidget):
         for name, value in self.coord.items():
             self.setUniform(name, value)
 
+        vertices = (ctypes.c_float * 8)(
+            -1.0,
+            -1.0,
+            1.0,
+            -1.0,
+            -1.0,
+            1.0,
+            1.0,
+            1.0,
+        )
+        attribute_pos = GL.glGetAttribLocation(
+            self.program, "machuchu_position"
+        )
+        GL.glEnableVertexAttribArray(attribute_pos)
+        GL.glVertexAttribPointer(
+            attribute_pos, 2, GL.GL_FLOAT, GL.GL_FALSE, 0, vertices
+        )
+
     def setUniform(self, name, value):
+        self.makeCurrent()
         if self.program is not None:
             loc = GL.glGetUniformLocation(self.program, name)
             # TODO: coerce value to appropriate type
@@ -218,7 +235,7 @@ class GLWidget(Qt.QGLWidget):
         self.coord.update()
         for name, value in self.coord.items():
             self.setUniform(name, value)
-        self.updateGL()
+        self.update()
         self.times.append(time.time())
 
 

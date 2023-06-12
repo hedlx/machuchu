@@ -17,6 +17,7 @@ from PySide2.QtWidgets import (
     QSlider,
     QVBoxLayout,
     QWidget,
+    QOpenGLWidget,
 )
 
 # TODO: Maybe export all from PyQt5.QtCore.Qt?
