@@ -15,6 +15,7 @@ import MyGL
 from preprocessor import Preprocessor
 from updater import Updater
 import Qt
+import qtpy
 
 # global TODO: handle input (python code in shader comment, eval it),
 #              advanced GUI generation (from comments)
@@ -453,8 +454,7 @@ class MainWindow(Qt.QMainWindow):
         self.timer.setInterval(15)
         self.timer.timeout.connect(self.tick)
         self.timer.start()
-        self.time = Qt.QTime()
-        self.time.start()
+        self.time = time.time()
         self.time_uniform = 0.0
         self.timeron = True  # FIXME
         self.cursorLocPos = Qt.QPoint(0, 0)
@@ -587,8 +587,15 @@ class MainWindow(Qt.QMainWindow):
                     self.uniforms[name] = LineEditUniform(self, name, value)
 
     def load(self) -> None:
+        # https://github.com/spyder-ide/qtpy/issues/432
+        kwargs = {}
+        if qtpy.PYQT5 or qtpy.PYQT6:
+            kwargs = {"directory": "./shader"}
+        elif qtpy.PYSIDE2 or qtpy.PYSIDE6:
+            kwargs = {"dir": "./shader"}
+
         filename = Qt.QFileDialog.getOpenFileName(
-            self, dir="./shader", filter="Fragment shader (*.f)"
+            self, filter="Fragment shader (*.f)", **kwargs
         )
         if filename[0] != "":
             self.loadFile(filename[0])
@@ -622,9 +629,9 @@ class MainWindow(Qt.QMainWindow):
         if self.updater and self.updater.check():
             self.reload()
         if self.timeron:
-            self.time_uniform += float(self.time.elapsed())
+            self.time_uniform += (time.time() - self.time) * 1000
         self.glWidget.setUniform("time", self.time_uniform)
-        self.time.start()
+        self.time = time.time()
         self.glWidget.tick()
         self.setWindowTitle(f"{int(round(self.glWidget.getFps()))} fps")
 
@@ -714,7 +721,7 @@ class MainWindow(Qt.QMainWindow):
     def mousePressEvent(self, e: Qt.QtGui.QMouseEvent) -> None:
         if e.buttons() == Qt.Qt.LeftButton:
             self.glWidget.coord.mouse_down(e.pos().x(), e.pos().y())
-        if e.button() == Qt.Qt.MidButton or e.button() == Qt.Qt.RightButton:
+        if e.button() == Qt.Qt.MiddleButton or e.button() == Qt.Qt.RightButton:
             self.cursorLocPos = e.pos()
         grabber = self.keyboardGrabber()
         if grabber:
@@ -727,7 +734,10 @@ class MainWindow(Qt.QMainWindow):
     def mouseMoveEvent(self, e: Qt.QtGui.QMouseEvent) -> None:
         if e.buttons() == Qt.Qt.LeftButton:
             self.glWidget.coord.mouse_move(e.pos().x(), e.pos().y())
-        if e.buttons() == Qt.Qt.MidButton or e.buttons() == Qt.Qt.RightButton:
+        if (
+            e.buttons() == Qt.Qt.MiddleButton
+            or e.buttons() == Qt.Qt.RightButton
+        ):
             d = self.cursorLocPos - e.pos()
             self.cursorLocPos = e.pos()
             self.warpCursor()

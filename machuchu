@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #! nix-shell -pi sh
-#! nix-shell "python3.withPackages (p:[p.pyopengl p.pyqt5 p.pyside2])"
+#! nix-shell "python3.withPackages (p:[p.pyopengl p.pyside2 p.qtpy p.numpy])"
 #! nix-shell "qt5.env \"qt-minimal${qt5.qtbase.version}\" []"
 
 python3 -B "$(dirname -- "$(readlink -f -- "$0")")"/src/main.py "$@"

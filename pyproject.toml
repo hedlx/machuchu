@@ -1,2 +1,20 @@
+[tool.poetry]
+name = "machuchu"
+version = "0.1.0"
+description = ""
+authors = ["yqy et al."]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+pyopengl = "^3.1.7"
+pyqt5 = "^5.15.9"
+python = "^3.10"
+qtpy = "^2.3.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.black]
 line-length=79
