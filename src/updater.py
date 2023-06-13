@@ -2,11 +2,11 @@ import posix
 import errno
 
 
-class Updater(object):
-    def __init__(self, files):
+class Updater:
+    def __init__(self, files: list[str]) -> None:
         self.files = {f: posix.stat(f).st_ctime for f in files}
 
-    def check(self):
+    def check(self) -> bool:
         res = False
         for f, old in self.files.items():
             try:

@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
-# vim: sw=4 ts=4 sts=4 et:
-
-from __future__ import print_function, division
-
 from html import escape
 import collections
+import typing
 import re
 import ctypes
 import traceback
@@ -23,46 +20,57 @@ import Qt
 #              advanced GUI generation (from comments)
 
 
+_UniformValue = int | bool | float | tuple[float, float, float, float]
+
+
 class GentleLineEdit(Qt.QLineEdit):
-    def __init__(self, label="", parent=None):
-        super(GentleLineEdit, self).__init__(label, parent)
+    def __init__(
+        self, label: str = "", parent: Qt.QWidget | None = None
+    ) -> None:
+        super().__init__(label, parent)
         self.editingFinished.connect(self.clearFocus)
         self.editingFinished.connect(self.releaseKeyboard)
         self.setAlignment(Qt.Qt.AlignRight)
 
-    def focusInEvent(self, e):
-        super(GentleLineEdit, self).focusInEvent(e)
+    def focusInEvent(self, e: Qt.QtGui.QFocusEvent) -> None:
+        super().focusInEvent(e)
         self.grabKeyboard()
 
 
-class CoordUniform(object):
-    def __init__(self):
+class CoordUniform:
+    _Fun = typing.Callable[
+        [tuple[float, float, float], float], tuple[float, float, float]
+    ]
+
+    def __init__(self) -> None:
         self.x = self.y = self.z = (0.0, 0.0, 0.0)
         self.mouse_pressed = False
-        self.mouse_i = None
+        self.mouse_i: None | tuple[int, int] = None
         self.mouse_f = self.mouse_f_start = (float("nan"), float("nan"))
-        self.size = (1, 1)
+        self.size: tuple[int, int] = (1, 1)
 
-    def origin(self):
+    def origin(self) -> None:
         self.x = (0.0, 0.0, self.x[2])
         self.y = (0.0, 0.0, self.y[2])
 
-    def zoom_reset(self):
+    def zoom_reset(self) -> None:
         self.z = (0.0, 0.0, 0.0)
 
-    def add(self, x=0.0, y=0.0, z=0.0):
-        f = lambda v, d: (v[0], v[1], v[2] + d)
+    def add(self, x: float = 0.0, y: float = 0.0, z: float = 0.0) -> None:
+        f: CoordUniform._Fun = lambda v, d: (v[0], v[1], v[2] + d)
         self.x = f(self.x, x)
         self.y = f(self.y, y)
         self.z = f(self.z, z)
 
-    def move(self, x, y):
+    def move(self, x: float, y: float) -> None:
         z = 2.0 / (1.1 ** self.z[0]) / self.size[1]
-        f = lambda v, d: (v[0] + d * z, v[1], v[2])
+        f: CoordUniform._Fun = lambda v, d: (v[0] + d * z, v[1], v[2])
         self.x = f(self.x, x)
         self.y = f(self.y, y)
 
-    def zoom(self, z, origin=None):
+    def zoom(
+        self, z: float, origin: None | tuple[float, float] = None
+    ) -> None:
         if origin:
             sx, sy = (
                 origin[0] - self.size[0] / 2.0,
@@ -74,27 +82,31 @@ class CoordUniform(object):
         self.z = (self.z[0] + z, self.z[1], self.z[2])
         self.move(-sx, sy)
 
-    def translate(self, x, y):
+    def translate(self, x: float, y: float) -> tuple[float, float]:
         z = 2.0 / (1.1 ** self.z[0]) / self.size[1]
         sx = self.x[0] + (x - self.size[0] / 2.0) * z
         sy = self.y[0] - (y - self.size[1] / 2.0) * z
         return sx, sy
 
-    def mouse_down(self, x, y):
+    def mouse_down(self, x: int, y: int) -> None:
         self.mouse_pressed = True
         self.mouse_i = (x, y)
         self.mouse_f = self.mouse_f_start = self.translate(x, y)
 
-    def mouse_move(self, x, y):
+    def mouse_move(self, x: int, y: int) -> None:
         self.mouse_pressed = True
         self.mouse_i = (x, y)
         self.mouse_f = self.translate(x, y)
 
-    def mouse_up(self):
+    def mouse_up(self) -> None:
         self.mouse_pressed = False
 
-    def update(self):
-        f = lambda v, s: (v[0] + v[1] / s, (v[1] * 15 + v[2]) / 16, v[2])
+    def update(self) -> None:
+        f: CoordUniform._Fun = lambda v, s: (
+            v[0] + v[1] / s,
+            (v[1] * 15 + v[2]) / 16,
+            v[2],
+        )
         z = 25 * 1.1 ** self.z[0]
         self.x = f(self.x, z)
         self.y = f(self.y, z)
@@ -102,7 +114,7 @@ class CoordUniform(object):
         if self.mouse_i is not None and self.mouse_pressed:
             self.mouse_f = self.translate(*self.mouse_i)
 
-    def items(self):
+    def items(self) -> typing.Iterator[tuple[str, _UniformValue]]:
         yield "machuchu_x", self.x[0]
         yield "machuchu_y", self.y[0]
         yield "machuchu_z", 1.1 ** self.z[0]
@@ -133,26 +145,27 @@ class GLWidget(Qt.QOpenGLWidget):
         }
     """
 
-    def __init__(self, parent=None):
-        self.parent = parent
-        super(GLWidget, self).__init__(parent)
+    def __init__(self, parent: Qt.QWidget | None = None) -> None:
+        super().__init__(parent)
         self.program = None
-        self.times = collections.deque([0], maxlen=10)
+        self.times = collections.deque([0.0], maxlen=10)
         self.coord = CoordUniform()
 
-    def resizeGL(self, width, height):
+    def resizeGL(self, width: int, height: int) -> None:
         GL.glViewport(0, 0, width, height)
         self.coord.size = (width, height)
 
-    def paintGL(self):
+    def paintGL(self) -> None:
         GL.glDrawArrays(GL.GL_TRIANGLE_STRIP, 0, 4)
 
-    def getFps(self):
+    def getFps(self) -> float:
         return (len(self.times) - 1) / (self.times[-1] - self.times[0])
 
-    def getUniforms(self):
+    def getUniforms(
+        self,
+    ) -> tuple[dict[str, int | float], dict[str, GL.Constant]]:
         self.makeCurrent()
-        uniforms = {}
+        uniforms: dict[str, int | float] = {}
         types = {}
         count = GL.glGetProgramiv(self.program, GL.GL_ACTIVE_UNIFORMS)
         iparams = ctypes.c_int()
@@ -175,7 +188,7 @@ class GLWidget(Qt.QOpenGLWidget):
             types[name] = type_
         return uniforms, types
 
-    def setFragmentShader(self, shader, version):
+    def setFragmentShader(self, shader: str, version: list[str]) -> None:
         self.makeCurrent()
 
         fragmentShader = MyGL.compileShader(shader, GL.GL_FRAGMENT_SHADER)
@@ -220,7 +233,7 @@ class GLWidget(Qt.QOpenGLWidget):
             attribute_pos, 2, GL.GL_FLOAT, GL.GL_FALSE, 0, vertices
         )
 
-    def setUniform(self, name, value):
+    def setUniform(self, name: str, value: _UniformValue) -> None:
         self.makeCurrent()
         if self.program is not None:
             loc = GL.glGetUniformLocation(self.program, name)
@@ -232,7 +245,7 @@ class GLWidget(Qt.QOpenGLWidget):
             if isinstance(value, tuple) and len(value) == 4:
                 GL.glUniform4f(loc, *value)
 
-    def tick(self):
+    def tick(self) -> None:
         self.coord.update()
         for name, value in self.coord.items():
             self.setUniform(name, value)
@@ -241,41 +254,45 @@ class GLWidget(Qt.QOpenGLWidget):
 
 
 # TODO: UniformBase should inherit QWidget
-class UniformBase(object):
-    def __init__(self, parent, name, value):
+class UniformBase:
+    def __init__(
+        self, parent: Qt.QWidget, name: str, value: _UniformValue
+    ) -> None:
         self.parent = parent
         self.name = name
         self.value = value
 
-    def init_widgets(self, widgets):
+    def init_widgets(self, widgets: list[Qt.QWidget]) -> None:
         self.widgets = widgets
+        assert isinstance(self.parent, MainWindow)
         for w in widgets:
             self.parent.shaderLayout.addWidget(w)
 
-    def _set_value(self, value):
+    def _set_value(self, value: _UniformValue) -> None:
         self.value = value
+        assert isinstance(self.parent, MainWindow)
         self.parent.glWidget.setUniform(self.name, self.value)
 
-    def hide(self):
+    def hide(self) -> None:
         for w in self.widgets:
             w.hide()
 
-    def show(self):
+    def show(self) -> None:
         for w in self.widgets:
             w.show()
 
-    def delete(self):
+    def delete(self) -> None:
         for w in self.widgets:
             w.setParent(None)
 
 
 class LineEditUniform(UniformBase):
-    def __init__(self, parent, name, value):
-        super(LineEditUniform, self).__init__(parent, name, value)
+    def __init__(self, parent: Qt.QWidget, name: str, value: float) -> None:
+        super().__init__(parent, name, value)
         label = Qt.QLabel(name)
         edit = GentleLineEdit(str(value))
 
-        def l(text):
+        def l(text: str) -> None:
             try:
                 value = float(text)
             except ValueError:
@@ -285,43 +302,48 @@ class LineEditUniform(UniformBase):
         edit.textChanged.connect(l)
         self.init_widgets([label, edit])
 
-    def update(self):
+    def update(self) -> None:
+        assert isinstance(self.parent, MainWindow)
         self.parent.glWidget.setUniform(self.name, self.value)
 
 
 class SliderUniform(UniformBase):
-    def __init__(self, parent, name, value, min, max):
-        super(SliderUniform, self).__init__(parent, name, value)
+    def __init__(
+        self, parent: Qt.QWidget, name: str, value: int, min: int, max: int
+    ) -> None:
+        super().__init__(parent, name, value)
         self.slider = Qt.QSlider(Qt.Qt.Horizontal)
         self.slider.setValue(value)
-        self.label = Qt.QLabel("%s: %s" % (name, value))
+        self.label = Qt.QLabel(f"{name}: {value}")
         self.update(min, max)
         self.slider.valueChanged.connect(lambda x: self._set_value(x))
         self.init_widgets([self.label, self.slider])
 
-    def _set_value(self, x):
+    def _set_value(self, x: int) -> None:
         super()._set_value(x)
-        self.label.setText("%s: %s" % (self.name, x))
+        self.label.setText(f"{self.name}: {x}")
 
-    def update(self, min, max):
+    def update(self, min: int, max: int) -> None:
         self.slider.setMinimum(min)
         self.slider.setMaximum(max)
+        assert isinstance(self.parent, MainWindow)
         self.parent.glWidget.setUniform(self.name, self.value)
 
 
 class CheckBoxUniform(UniformBase):
-    def __init__(self, parent, name, value):
-        super(CheckBoxUniform, self).__init__(parent, name, value)
+    def __init__(self, parent: Qt.QWidget, name: str, value: bool) -> None:
+        super().__init__(parent, name, value)
         cbox = Qt.QCheckBox(name)
         cbox.setCheckState(Qt.Qt.Unchecked if value == 0 else Qt.Qt.Checked)
         cbox.stateChanged.connect(lambda _: self._set_value(cbox.isChecked()))
         self.init_widgets([cbox])
 
-    def update(self):
+    def update(self) -> None:
+        assert isinstance(self.parent, MainWindow)
         self.parent.glWidget.setUniform(self.name, self.value)
 
 
-def format_error(prep, err_text):
+def format_error(prep: Preprocessor, err_text: str) -> str:
     re_err_intel = re.compile(
         r"""^
         (?P<fno> [0-9]+):(?P<line> [0-9]+ )
@@ -355,13 +377,11 @@ def format_error(prep, err_text):
                 prev = curr
                 result.append("\n")
                 try:
-                    result.append(
-                        "{}:{}:\n".format(escape(prep.fnames[m_fno]), m_line)
-                    )
-                    result.append("%5d | " % (m_line,))
+                    result.append(f"{prep.fnames[m_fno]}:{m_line}:\n")
+                    result.append(f"{m_line:5d} | ")
                     result.append(escape(prep.fcontents[m_fno][m_line - 1]))
                 except IndexError:
-                    result.append("??? {}:{}".format(m_fno, m_line))
+                    result.append(f"??? {m_fno}:{m_line}")
                 result.append("\n")
             if m["kind"] == "error":
                 result.append("<font color='#CC0000'>")
@@ -372,7 +392,7 @@ def format_error(prep, err_text):
             result.append(escape(m["kind"]))
             result.append("</font>")
             if "extra" in m:
-                result.append("(%s)" % escape(m["extra"]))
+                result.append(f"({escape(m['extra'])})")
             result.append(": " + escape(m["text"]) + "\n")
         else:
             result.append(escape(err_line) + "\n")
@@ -389,8 +409,8 @@ def format_error(prep, err_text):
 
 
 class MainWindow(Qt.QMainWindow):
-    def __init__(self):
-        super(MainWindow, self).__init__()
+    def __init__(self) -> None:
+        super().__init__()
         self.resize(800, 600)
         self.setWindowTitle("PyGL")
         self.glWidget = GLWidget(self)
@@ -425,9 +445,9 @@ class MainWindow(Qt.QMainWindow):
             )
         )
 
-        self.uniforms = {}
-        self.filename = None
-        self.updater = None
+        self.uniforms: dict[str, UniformBase] = {}
+        self.filename: str | None = None
+        self.updater: Updater | None = None
 
         self.timer = Qt.QTimer(self)
         self.timer.setInterval(15)
@@ -439,7 +459,7 @@ class MainWindow(Qt.QMainWindow):
         self.timeron = True  # FIXME
         self.cursorLocPos = Qt.QPoint(0, 0)
 
-    def initShaderDock(self):
+    def initShaderDock(self) -> tuple[Qt.QDockWidget, Qt.QVBoxLayout]:
         shaderDock = Qt.QDockWidget()
         shaderLayout = Qt.QVBoxLayout()
         widget = Qt.QWidget()
@@ -460,7 +480,7 @@ class MainWindow(Qt.QMainWindow):
         shaderLayout.setSpacing(1)
         return shaderDock, shaderLayout
 
-    def initRenderDock(self):
+    def initRenderDock(self) -> tuple[Qt.QDockWidget, Qt.QVBoxLayout]:
         renderDock = Qt.QDockWidget()
         renderLayout = Qt.QVBoxLayout()
         widget = Qt.QWidget()
@@ -523,7 +543,12 @@ class MainWindow(Qt.QMainWindow):
         renderDock.hide()
         return renderDock, renderLayout
 
-    def updateUniforms(self, data, uniforms, types):
+    def updateUniforms(
+        self,
+        data: str,
+        uniforms: dict[str, int | float],
+        types: dict[str, GL.Constant],
+    ) -> None:
         for uni in self.uniforms.values():
             uni.hide()
         unpragmed = set(uniforms)
@@ -561,20 +586,21 @@ class MainWindow(Qt.QMainWindow):
                 else:
                     self.uniforms[name] = LineEditUniform(self, name, value)
 
-    def load(self):
+    def load(self) -> None:
         filename = Qt.QFileDialog.getOpenFileName(
             self, dir="./shader", filter="Fragment shader (*.f)"
         )
         if filename[0] != "":
             self.loadFile(filename[0])
 
-    def reload(self):
+    def reload(self) -> None:
         if self.filename:
             self.loadFile(self.filename)
 
-    def loadFile(self, filename):
+    def loadFile(self, filename: str) -> None:
         self.filename = filename
         self.label.hide()
+        prep = None
         try:
             prep = Preprocessor(filename)
             self.updater = Updater(prep.fnames)
@@ -582,7 +608,7 @@ class MainWindow(Qt.QMainWindow):
             uniforms, types = self.glWidget.getUniforms()
             self.updateUniforms(prep.text, uniforms, types)
         except Exception as e:
-            if isinstance(e, MyGL.ShaderCompilationError):
+            if prep is not None and isinstance(e, MyGL.ShaderCompilationError):
                 self.label.setTextFormat(Qt.Qt.RichText)
                 self.label.setText(format_error(prep, e.text))
                 print(e.text)
@@ -592,7 +618,7 @@ class MainWindow(Qt.QMainWindow):
                 print(traceback.format_exc())
             self.label.show()
 
-    def tick(self):
+    def tick(self) -> None:
         if self.updater and self.updater.check():
             self.reload()
         if self.timeron:
@@ -600,27 +626,25 @@ class MainWindow(Qt.QMainWindow):
         self.glWidget.setUniform("time", self.time_uniform)
         self.time.start()
         self.glWidget.tick()
-        self.setWindowTitle(
-            "{:d} fps".format(int(round(self.glWidget.getFps())))
-        )
+        self.setWindowTitle(f"{int(round(self.glWidget.getFps()))} fps")
 
-    def timer_reset(self):
+    def timer_reset(self) -> None:
         self.time_uniform = 0.0
         self.glWidget.setUniform("time", self.time_uniform)
 
-    def toggleShaderDock(self):
+    def toggleShaderDock(self) -> None:
         if self.shaderDock.isVisible():
             self.shaderDock.hide()
         else:
             self.shaderDock.show()
 
-    def toggleRenderDock(self):
+    def toggleRenderDock(self) -> None:
         if self.renderDock.isVisible():
             self.renderDock.hide()
         else:
             self.renderDock.show()
 
-    def keyPressEvent(self, e):
+    def keyPressEvent(self, e: Qt.QtGui.QKeyEvent) -> None:
         if not e.isAutoRepeat() and not self.keyboardGrabber():
             if e.key() == Qt.Qt.Key_W:
                 self.glWidget.coord.add(y=+1)
@@ -651,7 +675,7 @@ class MainWindow(Qt.QMainWindow):
         if e.modifiers() == Qt.Qt.ControlModifier and e.key() == Qt.Qt.Key_O:
             self.load()
 
-    def keyReleaseEvent(self, e):
+    def keyReleaseEvent(self, e: Qt.QtGui.QKeyEvent) -> None:
         if not e.isAutoRepeat() and not self.keyboardGrabber():
             if e.key() == Qt.Qt.Key_W:
                 self.glWidget.coord.add(y=-1)
@@ -666,16 +690,19 @@ class MainWindow(Qt.QMainWindow):
             if e.key() == Qt.Qt.Key_Comma:
                 self.glWidget.coord.add(z=+1)
 
-    def wheelEvent(self, e):
+    def wheelEvent(self, e: Qt.QtGui.QWheelEvent) -> None:
         d = e.angleDelta()
         if Qt.QApplication.keyboardModifiers() & Qt.Qt.ControlModifier:
             self.glWidget.coord.zoom(d.y() / 100, (e.pos().x(), e.pos().y()))
         else:
             self.glWidget.coord.move(x=-d.x(), y=d.y())
 
-    def warpCursor(self):
+    def warpCursor(self) -> None:
         cursor = Qt.QCursor()
-        warp = lambda value, max: (value - 1) % (max - 2) + 1
+
+        def warp(value: int, max: int) -> int:
+            return (value - 1) % (max - 2) + 1
+
         newCursorLocPos = Qt.QPoint(
             warp(self.cursorLocPos.x(), self.width()),
             warp(self.cursorLocPos.y(), self.height()),
@@ -684,7 +711,7 @@ class MainWindow(Qt.QMainWindow):
             cursor.setPos(cursor.pos() + newCursorLocPos - self.cursorLocPos)
             self.cursorLocPos = newCursorLocPos
 
-    def mousePressEvent(self, e):
+    def mousePressEvent(self, e: Qt.QtGui.QMouseEvent) -> None:
         if e.buttons() == Qt.Qt.LeftButton:
             self.glWidget.coord.mouse_down(e.pos().x(), e.pos().y())
         if e.button() == Qt.Qt.MidButton or e.button() == Qt.Qt.RightButton:
@@ -694,10 +721,10 @@ class MainWindow(Qt.QMainWindow):
             grabber.releaseKeyboard()
             grabber.clearFocus()
 
-    def mouseReleaseEvent(self, e):
+    def mouseReleaseEvent(self, e: Qt.QtGui.QMouseEvent) -> None:
         self.glWidget.coord.mouse_up()
 
-    def mouseMoveEvent(self, e):
+    def mouseMoveEvent(self, e: Qt.QtGui.QMouseEvent) -> None:
         if e.buttons() == Qt.Qt.LeftButton:
             self.glWidget.coord.mouse_move(e.pos().x(), e.pos().y())
         if e.buttons() == Qt.Qt.MidButton or e.buttons() == Qt.Qt.RightButton:

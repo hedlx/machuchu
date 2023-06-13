@@ -9,18 +9,18 @@ VERSION_RE = re.compile(r"^\s*#\s*version\s+(.*)$")
 
 
 class Preprocessor:
-    def __init__(self, fname):
-        self.version = None
+    def __init__(self, fname: str) -> None:
+        self.version: None | list[str] = None
         self._shift = 0
-        self.text_lines = []
-        self.fnames = []
-        self.fcontents = []
-        self._once = set()
+        self.text_lines: list[str] = []
+        self.fnames: list[str] = []
+        self.fcontents: list[list[str]] = []
+        self._once: set[str] = set()
 
         self._one(fname)
         self.text = "\n".join(self.text_lines)
 
-    def _one(self, fname):
+    def _one(self, fname: str) -> None:
         if fname in self._once:
             return
         contents = open(fname, "r").read().split("\n")
@@ -32,13 +32,13 @@ class Preprocessor:
 
         if findex != 0:
             self.text_lines.append(
-                "#line %d %d /* %s */" % (self._shift, findex, fname)
+                f"#line {self._shift} {findex} /* {fname} */"
             )
 
         for n, line in enumerate(contents):
             match = ONCE_RE.match(line)
             if match:
-                self.text_lines.append("/* %s */" % (line,))
+                self.text_lines.append(f"/* {line} */")
                 self._once.add(fname)
                 continue
             match = INCLUDE_RE.match(line)
@@ -48,22 +48,22 @@ class Preprocessor:
                     path += "/"
                 self._one(path + match.groups()[0])
                 self.text_lines.append(
-                    "#line %d %d /* %s:%d */"
-                    % (self._shift + n + 1, findex, fname, n + 1)
+                    f"#line {self._shift + n + 1} {findex} "
+                    f"/* {fname}:{n + 1} */"
                 )
                 continue
             match = VERSION_RE.match(line)
             if match:
                 self.version = re.split(r" +", match.groups()[0])
                 self._shift = int(self.version[1:2] == ["es"])
-                self.text_lines.append("/* %s */" % (line,))
+                self.text_lines.append(f"/* {line} */")
                 self.text_lines.insert(0, line)
-                self.text_lines.insert(1, "#line %d 0" % (self._shift,))
+                self.text_lines.insert(1, f"#line {self._shift} 0")
                 continue
             self.text_lines.append(line)
 
 
-def main():
+def main() -> None:
     import sys
 
     if len(sys.argv) != 2:
@@ -73,7 +73,7 @@ def main():
     print(p.text)
     print("/* Used files:")
     for i, f in enumerate(p.fnames):
-        print(" *  %d: %s" % (i, f))
+        print(f" *  {i}: {f}")
     print(" */")
 
 
