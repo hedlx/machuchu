@@ -129,6 +129,7 @@ class GLWidget(Qt.QOpenGLWidget):
         // #version 130 / #version 300 es
         in vec2 machuchu_position;
         out vec2 p;
+        out vec2 machuchu_pos;
 
         uniform float machuchu_aspect;
         uniform float machuchu_x;
@@ -137,6 +138,7 @@ class GLWidget(Qt.QOpenGLWidget):
 
         void main() {
             gl_Position = vec4(machuchu_position, 0., 1.);
+            machuchu_pos = machuchu_position * 0.5 + vec2(0.5);
 
             p = machuchu_position;
             p.x *= machuchu_aspect;
@@ -149,15 +151,80 @@ class GLWidget(Qt.QOpenGLWidget):
     def __init__(self, parent: Qt.QWidget | None = None) -> None:
         super().__init__(parent)
         self.program = None
+
+        self._flip = 0
+        self._fbo = None
+        self._texture = None
+
         self.times = collections.deque([0.0], maxlen=10)
         self.coord = CoordUniform()
+
+    def initializeGL(self) -> None:
+        self._fbo = GL.glGenFramebuffers(1)
+        self._texture = GL.glGenTextures(1)
+
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self._fbo)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self._texture)
+        GL.glTexParameteri(
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST
+        )
+        GL.glTexParameteri(
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST
+        )
+        GL.glTexParameteri(
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT
+        )
+        GL.glTexParameteri(
+            GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT
+        )
+        GL.glFramebufferTexture2D(
+            GL.GL_FRAMEBUFFER,
+            GL.GL_COLOR_ATTACHMENT0,
+            GL.GL_TEXTURE_2D,
+            self._texture,
+            0,
+        )
 
     def resizeGL(self, width: int, height: int) -> None:
         GL.glViewport(0, 0, width, height)
         self.coord.size = (width, height)
 
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self._texture)
+        GL.glTexImage2D(
+            GL.GL_TEXTURE_2D,
+            0,
+            GL.GL_RGBA,
+            width,
+            height,
+            0,
+            GL.GL_RGBA,
+            GL.GL_UNSIGNED_BYTE,
+            None,
+        )
+
     def paintGL(self) -> None:
+        if self.program is None:
+            return
+
+        GL.glBindFramebuffer(
+            GL.GL_FRAMEBUFFER, self.defaultFramebufferObject()
+        )
         GL.glDrawArrays(GL.GL_TRIANGLE_STRIP, 0, 4)
+
+        if GL.glGetUniformLocation(self.program, "machuchu_tex") != -1:
+            GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, self._fbo)
+            GL.glBlitFramebuffer(
+                0,
+                0,
+                self.coord.size[0],
+                self.coord.size[1],
+                0,
+                0,
+                self.coord.size[0],
+                self.coord.size[1],
+                GL.GL_COLOR_BUFFER_BIT,
+                GL.GL_NEAREST,
+            )
 
     def getFps(self) -> float:
         return (len(self.times) - 1) / (self.times[-1] - self.times[0])
@@ -186,6 +253,9 @@ class GLWidget(Qt.QOpenGLWidget):
             elif type_ == GL.GL_BOOL:
                 GL.glGetUniformiv(self.program, loc, iparams)
                 uniforms[name] = iparams.value
+            elif type_ == GL.GL_SAMPLER_2D:
+                GL.glGetUniformiv(self.program, loc, iparams)
+                uniforms[name] = iparams.value
             types[name] = type_
         return uniforms, types
 
@@ -201,13 +271,6 @@ class GLWidget(Qt.QOpenGLWidget):
 
         program = GL_shaders.compileProgram(
             vertexShader, fragmentShader, validate=False
-        )
-
-        GL.glBindFragDataLocation(program, 0, "machuchu_fragColor")
-        positionAttrib = GL.glGetAttribLocation(program, "machuchu_position")
-        GL.glEnableVertexAttribArray(positionAttrib)
-        GL.glVertexAttribPointer(
-            positionAttrib, 2, GL.GL_FLOAT, GL.GL_FALSE, 0, 0
         )
 
         GL.glUseProgram(program)
@@ -233,6 +296,12 @@ class GLWidget(Qt.QOpenGLWidget):
         GL.glVertexAttribPointer(
             attribute_pos, 2, GL.GL_FLOAT, GL.GL_FALSE, 0, vertices
         )
+
+        loc = GL.glGetUniformLocation(self.program, "machuchu_tex")
+        if loc != -1:
+            GL.glActiveTexture(GL.GL_TEXTURE0)
+            GL.glBindTexture(GL.GL_TEXTURE_2D, self._texture)
+            GL.glUniform1i(loc, 0)
 
     def setUniform(self, name: str, value: _UniformValue) -> None:
         self.makeCurrent()

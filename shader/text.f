@@ -1,6 +1,7 @@
 #version 130
 
 in vec2 p;
+in vec2 machuchu_pos;
 
 uniform int val1 = 0;
 uniform int val2 = 3;
@@ -11,11 +12,17 @@ uniform int val2 = 3;
 #include "color.h"
 #include "text.h"
 
+uniform sampler2D machuchu_tex;
+
 void main() {
     float c =
         + text_int(p*5. + vec2(0, 0), val1)
         + text_int(p*5. + vec2(0, 1), val2)
         + text_int(p*5. + vec2(0, 2), imod(val1, val2))
     ;
-    gl_FragColor = vec4(c);
+    gl_FragColor = vec4(c) +
+        texture2D(
+            machuchu_tex,
+            machuchu_pos * vec2(1.1) - vec2(0.05)
+        ) * vec4(0.5, 0.1, 0.1, 0.0);
 }
