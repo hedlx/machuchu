@@ -817,7 +817,6 @@ class MainWindow(Qt.QMainWindow):
             self.glWidget.coord.move(d.x(), -d.y())
 
 
-# set opnegl version
 format = Qt.QSurfaceFormat()
 format.setVersion(3, 2)
 format.setProfile(Qt.QSurfaceFormat.CoreProfile)
