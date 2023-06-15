@@ -1,6 +1,7 @@
-#version 120
+#version 150
 
-varying vec2 p;
+in vec2 p;
+out vec4 fragColor;
 
 uniform float time;
 
@@ -33,5 +34,5 @@ void main()
     float k = 0.7;
     float p = line(-xy * k, xy * k, p);
 #endif
-    gl_FragColor = vec4(p, p, p, 1.);
+    fragColor = vec4(p, p, p, 1.);
 }

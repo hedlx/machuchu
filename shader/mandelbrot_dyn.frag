@@ -1,6 +1,7 @@
-#version 130
+#version 150
 
 in vec2 p;
+out vec4 fragColor;
 
 uniform float param1 = 128.;
 uniform float param2 = 16.;
@@ -32,5 +33,5 @@ void main()
     pp.x = p.x * 1.5 - 0.5;
     pp.y *= 1.5;
     vec3 c = labhsv(sin(time/10000)+mandel(pp, int(param1)) / param1, 0.75, 0.75);
-    gl_FragColor = vec4(c, 1);
+    fragColor = vec4(c, 1);
 }

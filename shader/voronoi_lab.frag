@@ -1,6 +1,8 @@
-#version 130
+#version 150
 
 in vec2 p;
+out vec4 fragColor;
+
 uniform float time;
 
 uniform bool draw_dots = false;
@@ -88,5 +90,5 @@ void main()
     #else
     debug_rings = 1;
     #endif
-    gl_FragColor = vec4(res_color, 1.) * debug_rings;
+    fragColor = vec4(res_color, 1.) * debug_rings;
 }

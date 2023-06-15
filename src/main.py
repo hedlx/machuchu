@@ -126,7 +126,7 @@ class CoordUniform:
 
 class GLWidget(Qt.QOpenGLWidget):
     vertexShaderData = """
-        // #version 130 / #version 300 es
+        // #version 150 / #version 300 es
         in vec2 machuchu_position;
         out vec2 p;
         out vec2 machuchu_pos;
@@ -266,7 +266,7 @@ class GLWidget(Qt.QOpenGLWidget):
         if version[1:2] == ["es"]:
             vertexShader = "#version 300 es\n" + self.vertexShaderData
         else:
-            vertexShader = "#version 130\n" + self.vertexShaderData
+            vertexShader = "#version 150\n" + self.vertexShaderData
         vertexShader = MyGL.compileShader(vertexShader, GL.GL_VERTEX_SHADER)
 
         program = GL_shaders.compileProgram(
@@ -289,6 +289,10 @@ class GLWidget(Qt.QOpenGLWidget):
             1.0,
             1.0,
         )
+        vao = GL.glGenVertexArrays(1)
+        GL.glBindVertexArray(vao)
+        vertex_buffer = GL.glGenBuffers(1)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, vertex_buffer)
         attribute_pos = GL.glGetAttribLocation(
             self.program, "machuchu_position"
         )
@@ -664,7 +668,7 @@ class MainWindow(Qt.QMainWindow):
             kwargs = {"dir": "./shader"}
 
         filename = Qt.QFileDialog.getOpenFileName(
-            self, filter="Fragment shader (*.f)", **kwargs
+            self, filter="Fragment shader (*.frag)", **kwargs
         )
         if filename[0] != "":
             self.loadFile(filename[0])
@@ -812,6 +816,12 @@ class MainWindow(Qt.QMainWindow):
             self.warpCursor()
             self.glWidget.coord.move(d.x(), -d.y())
 
+
+# set opnegl version
+format = Qt.QSurfaceFormat()
+format.setVersion(3, 2)
+format.setProfile(Qt.QSurfaceFormat.CoreProfile)
+Qt.QSurfaceFormat.setDefaultFormat(format)
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 app = Qt.QApplication(sys.argv)

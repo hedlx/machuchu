@@ -1,6 +1,7 @@
-#version 130
+#version 150
 
 in vec2 p;
+out vec4 fragColor;
 
 uniform float time;
 //niform float s = 1.;
@@ -37,5 +38,5 @@ void main()
     float f = /*pow(t, 2) * abs(pp.x) / abs(pp.y); */(pow(t, 2) * (/*sqrt*/(pp.x * pp.x + pp.y * pp.y) - atan(pp.y / pp.x)));
 //    f = (s == 0.) ? f : sin(2 * 3.14159265358979323846 * f);
 //    f -= int(f);
-    gl_FragColor = hsv2rgb(mod(f / t, 1.), mod(f / (t * t), 1.), 1.);//mod(f, 1.), 1./*mod((f - mod(f, 1.)) / 256., 1.)*/, 1.);
+    fragColor = hsv2rgb(mod(f / t, 1.), mod(f / (t * t), 1.), 1.);//mod(f, 1.), 1./*mod((f - mod(f, 1.)) / 256., 1.)*/, 1.);
 }

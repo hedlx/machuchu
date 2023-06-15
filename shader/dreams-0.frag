@@ -1,6 +1,8 @@
-#version 130
+#version 150
 
 #include "color.h"
+
+out vec4 fragColor;
 
 uniform float time;
 
@@ -20,5 +22,5 @@ void main() {
         l * l * l,
         0);
 
-    gl_FragColor = vec4(c, 0);
+    fragColor = vec4(c, 0);
 }

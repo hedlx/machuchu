@@ -1,7 +1,8 @@
-#version 130
+#version 150
 
 in vec2 p;
 in vec2 machuchu_pos;
+out vec4 fragColor;
 
 uniform int val1 = 0;
 uniform int val2 = 3;
@@ -20,8 +21,8 @@ void main() {
         + text_int(p*5. + vec2(0, 1), val2)
         + text_int(p*5. + vec2(0, 2), imod(val1, val2))
     ;
-    gl_FragColor = vec4(c) +
-        texture2D(
+    fragColor = vec4(c) +
+        texture(
             machuchu_tex,
             machuchu_pos * vec2(1.1) - vec2(0.05)
         ) * vec4(0.5, 0.1, 0.1, 0.0);

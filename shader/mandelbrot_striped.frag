@@ -1,6 +1,7 @@
-#version 130
+#version 150
 
 in vec2 p;
+out vec4 fragColor;
 
 uniform int depth = 64;
 #pragma machuchu slider depth 2 512
@@ -10,9 +11,9 @@ uniform float time;
 #include "color.h"
 
 #define COLOR(RGB) vec3(\
-  (0x##RGB>>16&0xFF)/255., \
-  (0x##RGB>> 8&0xFF)/255., \
-  (0x##RGB>> 0&0xFF)/255.)
+  (RGB>>16&0xFF)/255.,\
+  (RGB>> 8&0xFF)/255.,\
+  (RGB>> 0&0xFF)/255.)
 
 vec3 gradient4(float f, vec3 c[4])
 {
@@ -31,10 +32,10 @@ vec3 gradient4(float f, vec3 c[4])
 #define color(rgb) 4
 vec3 select_color(float f)
 {
-    return gradient4(f, vec3[4](COLOR(000000),
-                                COLOR(9700c8),
-                                COLOR(ffffff),
-                                COLOR(92d800)));
+    return gradient4(f, vec3[4](COLOR(0x000000),
+                                COLOR(0x9700c8),
+                                COLOR(0xffffff),
+                                COLOR(0x92d800)));
 }
 
 float striped_mandel(vec2 c, float shift, int strips, float strip_size, int n)
@@ -67,5 +68,5 @@ void main()
     pp.x = p.x * 1.5 - 0.5;
     pp.y *= 1.5;
     float f = striped_mandel(pp, -time/1000, 4, 1, depth);
-    gl_FragColor = vec4(select_color(f), 1);
+    fragColor = vec4(select_color(f), 1);
 }

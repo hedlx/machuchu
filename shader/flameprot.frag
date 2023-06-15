@@ -1,7 +1,9 @@
-#version 130
+#version 150
 
 in vec2 p;
 uniform float time;
+
+out vec4 fragColor;
 
 vec2 V0(vec2 co) {
     return co;
@@ -41,5 +43,5 @@ void main() {
     vec3 ty = vec3(3, 2, 2);
     vec2 co = vec2(dot(tx, vec3(p, 1)),
                    dot(ty, vec3(p, 1)));
-    gl_FragColor = vec4(V(1, co), 0, 0);
+    fragColor = vec4(V(1, co), 0, 0);
 }

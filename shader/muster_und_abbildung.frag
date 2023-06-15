@@ -1,8 +1,9 @@
-#version 130
+#version 150
 
 #include "lib.h"
 
 in vec2 p;
+out vec4 fragColor;
 
 // misc functions {{{
 vec3 bool2col(bool b) {
@@ -123,5 +124,5 @@ vec2 transform_(vec2 i) {
 // }}}
 
 void main() {
-    gl_FragColor = vec4(pattern_(transform_(p)), 1.0);
+    fragColor = vec4(pattern_(transform_(p)), 1.0);
 }

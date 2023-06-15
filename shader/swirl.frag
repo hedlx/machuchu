@@ -1,6 +1,7 @@
-#version 130
+#version 150
 
 in vec2 p;
+out vec4 fragColor;
 
 uniform float time;
 
@@ -18,5 +19,5 @@ void main() {
     float a = TAU * mod(r + f, 1);
     vec3 c = lab2rgb(75, 50 * sin(a), 50 * cos(a));
 
-    gl_FragColor = vec4(c, 1);
+    fragColor = vec4(c, 1);
 }

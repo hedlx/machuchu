@@ -1,4 +1,5 @@
-#version 130
+#version 150
+
 out vec4 machuchu_FragColor;
 
 in vec2 p;
